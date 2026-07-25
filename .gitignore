@@ -1,0 +1,18 @@
+# Build output
+build/
+*.uf2
+*.elf
+*.bin
+*.hex
+*.map
+*.dis
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# AI Stuff
+CLAUDE.md
+.claude
