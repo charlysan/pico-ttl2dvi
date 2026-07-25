@@ -6,6 +6,7 @@
 #include "hardware/watchdog.h"
 #include "console.h"
 #include "version.h"
+#include "video.h"
 
 static void cmd_version(int argc, char **argv) {
     (void)argc; (void)argv;
@@ -29,15 +30,26 @@ static void cmd_bootsel(int argc, char **argv) {
     reset_usb_boot(0, 0);
 }
 
+// Show the DVI line/torture pattern (1px black/white stripes).
+static void cmd_test(int argc, char **argv) {
+    (void)argc; (void)argv;
+    video_test_pattern();
+    printf("test pattern on DVI\n");
+}
+
 int main(void) {
+    // DVI (+ the 256 MHz overclock) first, before stdio brings up USB.
+    video_init();
+
     stdio_init_all();
-    // TEMPORARY: the console is the only feature, so just wait for USB. Once
-    // capture/DVI exist, the pipeline must run regardless of USB -- drop this.
+    // TEMPORARY: wait for USB so the banner is seen. Fine now (DVI already runs
+    // on core1 regardless); revisit when capture arrives.
     while (!stdio_usb_connected()) sleep_ms(100);
 
     console_register("version", cmd_version, "firmware version");
     console_register("reboot",  cmd_reboot,  "restart the firmware");
     console_register("bootsel", cmd_bootsel, "reboot into BOOTSEL to reflash");
+    console_register("test",    cmd_test,    "show DVI line pattern");
     console_init();
 
     while (true) {
