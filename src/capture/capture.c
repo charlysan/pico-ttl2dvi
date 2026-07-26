@@ -32,7 +32,7 @@ static int  dma_chan;
 //    The half-pixel centering is lost, so every sample lands on a transition edge -> jitter/shimmer.
 #define OVERSAMPLE       2
 #define PIO_CLKDIV       (8.0f / OVERSAMPLE)          // 4.0 at 2x
-#define OUT_PIXELS_MAX       864
+#define OUT_PIXELS_MAX       CAPTURE_MAX_WIDTH   // from capture.h (single source)
 #define SAMPLES_PER_LINE_MAX (OUT_PIXELS_MAX * OVERSAMPLE)
 #define WORDS_PER_LINE_MAX   (SAMPLES_PER_LINE_MAX / 16)   // 2bpp: 16 samples/word
 #define MAX_LINES        400
@@ -120,7 +120,8 @@ static bool wait_vsync(bool level)
 }
 
 // Grab one VSYNC-bounded frame into rawbuf. Returns false on no-signal timeout.
-static bool capture_frame(void)
+// Public: both the live view (view_render) and the USB dump grab this way.
+bool capture_grab(void)
 {
     if (!fit_sampling()) return false;
 
@@ -162,22 +163,37 @@ static inline uint sample_2bpp(uint line, uint s)
     return (word >> ((s & 15u) << 1)) & 3u;
 }
 
+// Geometry of the last grab (source frame the view maps onto the display).
+uint capture_width(void)  { return g_out_pixels; }
+uint capture_height(void) { return g_lines; }
+
+// Reconstruct one source line into dst[0..width-1] as 2-bit values (0..3 =
+// VIDEO | INTENSITY<<1). Each output pixel is the raw sample nearest its centre.
+// Batched per line so the tight sample-pick loop stays here (direct rawbuf
+// access); the view then composites the row into the framebuffer.
+void capture_get_line(uint line, uint8_t *dst)
+{
+    for (uint k = 0; k < g_out_pixels; k++) {
+        uint s = (uint)((k + 0.5f) * g_spp);       // centred sample per pixel
+        if (s >= g_samples_per_line) s = g_samples_per_line - 1;
+        dst[k] = (uint8_t)sample_2bpp(line, s);
+    }
+}
+
 void capture_dump_frame(void)
 {
-    if (!capture_frame()) {
+    if (!capture_grab()) {
         printf("capture: no sync signal\n");
         return;
     }
 
     printf("@@@BEGIN\n");
     printf("W %u H %u\n", g_out_pixels, g_lines);
+    static uint8_t src[OUT_PIXELS_MAX];
     char row[OUT_PIXELS_MAX + 1];
     for (uint line = 0; line < g_lines; line++) {
-        for (uint k = 0; k < g_out_pixels; k++) {
-            uint s = (uint)((k + 0.5f) * g_spp);       // centred sample per pixel
-            if (s >= g_samples_per_line) s = g_samples_per_line - 1;
-            row[k] = (char)('0' + sample_2bpp(line, s));   // 0..3
-        }
+        capture_get_line(line, src);
+        for (uint k = 0; k < g_out_pixels; k++) row[k] = (char)('0' + src[k]);
         row[g_out_pixels] = '\0';
         puts(row);
     }

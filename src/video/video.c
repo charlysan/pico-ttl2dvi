@@ -10,19 +10,35 @@
 #include "tmds_encode.h"
 #include "board.h"          // DVI_SERIAL_CFG, DVI_GPIO_BASE
 
-// 640x480@~60 at 256 MHz (the same proven timing dvi_test uses, just 2bpp
-// monochrome instead of 16bpp colour). 256 MHz is the capture engine's clock,
-// so once capture lands, output and capture share one sysclk. The custom 736
-// modes + a mode table come later; this is enough for the test pattern.
-#define DVI_TIMING dvi_timing_640x480p_60hz
+// Custom 736x480 @ 50 Hz at 256 MHz. 736 = 23*32 is the smallest multiple of 32
+// >= 720, so all 720 MDA/Hercules active pixels fit (8px black border each side)
+// -- no crop, no scale, so the 1:1 checkerboard stays perfect. 256 MHz gives an
+// integer 16 cyc/pixel dot clock (the proven-clean ratio); 50 Hz (via a wider
+// raster, htotal 975 x vtotal 525) is frame-matched to the ~50 Hz MDA source.
+// (640x480@60 and 736x480@60 exist too; a runtime mode-switch command is a
+// later knob -- this single mode is the faithful default.)
+static const struct dvi_timing dvi_timing_736x480p_50hz = {
+    .h_sync_polarity = false, .h_front_porch = 24, .h_sync_width = 96,
+    .h_back_porch = 119, .h_active_pixels = 736,             // htotal 975
+    .v_sync_polarity = false, .v_front_porch = 10, .v_sync_width = 2,
+    .v_back_porch = 33, .v_active_lines = 480,               // vtotal 525
+    .bit_clk_khz = 256000,                                   // 25.6 MHz pixel -> 50.0 Hz
+};
+#define DVI_TIMING dvi_timing_736x480p_50hz
 #define DVI_CLK_KHZ 256000
 
-#define FB_W 640
+#define FB_W 736
 #define FB_H 480
-#define FB_WORDS (FB_W / 16)          // 2bpp: 16 px/word -> 40 words/scanline
+#define FB_WORDS (FB_W / 16)          // 2bpp: 16 px/word -> 46 words/scanline
 
 static struct dvi_inst dvi0;
 static uint32_t framebuf[FB_WORDS * FB_H];   // 2 bits/pixel, level 0..3
+
+// --- framebuffer access (for the view/render module on core0) ---
+uint32_t *video_framebuffer(void) { return framebuf; }
+uint      video_fb_width(void)    { return FB_W; }
+uint      video_fb_height(void)   { return FB_H; }
+uint      video_fb_words(void)    { return FB_WORDS; }   // 32-bit words per scanline
 
 // core1 owns DVI end to end: walk the framebuffer, TMDS-encode each line as
 // 4-level grayscale, feed the serialiser. Runs forever off whatever core0 wrote.

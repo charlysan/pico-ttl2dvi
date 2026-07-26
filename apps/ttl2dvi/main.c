@@ -11,6 +11,7 @@
 #include "video.h"
 #include "sync.h"
 #include "capture.h"
+#include "view.h"
 
 static void cmd_version(int argc, char **argv) {
     (void)argc; (void)argv;
@@ -80,9 +81,8 @@ int main(void) {
     capture_init();              // sampler SM + DMA on pio0 (needs sync_init first)
 
     stdio_init_all();
-    // TEMPORARY: wait for USB so the banner is seen. Fine now (DVI already runs
-    // on core1 regardless); revisit when capture arrives.
-    while (!stdio_usb_connected()) sleep_ms(100);
+    // Do NOT wait for USB: the live pipeline must run whether or not a PC is
+    // attached.
 
     console_register("version", cmd_version, "firmware version");
     console_register("reboot",  cmd_reboot,  "restart the firmware");
@@ -92,7 +92,12 @@ int main(void) {
     console_register("capture", cmd_capture, "grab a frame, dump over USB");
     console_init();
 
+    // Live view: grab a frame, composite it into the DVI framebuffer, service
+    // the console. With no signal capture_grab() times out (~false) and the
+    // framebuffer keeps its last content (so a `test` pattern stays visible).
     while (true) {
+        if (capture_grab())
+            view_render();
         console_poll();
     }
 }

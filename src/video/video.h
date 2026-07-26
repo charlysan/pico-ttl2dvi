@@ -13,6 +13,13 @@
 // stdio_init_all() (it changes clk_sys). Framebuffer starts black.
 void video_init(void);
 
+// Framebuffer access for the view/render module (core0 writes; core1 reads).
+// The buffer is 2bpp packed: 16 pixels/word, each pixel a level 0..3.
+uint32_t *video_framebuffer(void);   // base pointer
+uint      video_fb_width(void);      // pixels (736)
+uint      video_fb_height(void);     // scanlines (480)
+uint      video_fb_words(void);      // 32-bit words per scanline (46)
+
 // Fill the framebuffer with 1px alternating black/white vertical stripes -- the
 // highest-frequency pattern, the TMDS torture test. Proves the DVI path.
 void video_test_pattern_stripes(void);
