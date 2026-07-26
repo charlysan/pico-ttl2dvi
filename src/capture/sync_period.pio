@@ -1,0 +1,52 @@
+; Measure a sync signal's period in sysclk cycles, split into pulse + gap.
+;
+; This one program drives BOTH the HSYNC and VSYNC state machines. The only
+; per-signal difference used to be the hardcoded GPIO in `wait ... gpio N`;
+; using `wait ... pin 0` (relative to the SM's IN base) instead makes the
+; program pin-agnostic. Each SM is pointed at its own pin in C via
+; sm_config_set_in_pins() (for the waits) and sm_config_set_jmp_pin() (for
+; the counting loops) -- both set to the same GPIO.
+;
+; Polarity: this program measures pulse then gap; PERIOD = pulse + gap either
+; way, so for FREQUENCY the polarity is irrelevant and sync.c uses it WITHOUT
+; any pad inversion (both HSYNC and VSYNC, even though MDA VSYNC is active-low).
+; The gpio_set_inover() trick is only needed if a correct *pulse width* (not
+; just the period) is wanted -- e.g. distinguishing sync pulse from back porch
+; for capture framing. Must be applied there, not here. NOTE the ordering trap for
+; that case: set the inover AFTER pio_gpio_init (which resets INOVER).
+;
+; Idiom: PIO has no readable counter, so the CPU preloads X, the SM spins a
+; uniform 2-cycle loop (jmp x--) while the level holds, and reports the
+; remainder. cycles = (preload - remainder) * 2.
+;
+; Loop-exit note: in each loop below the real exit is the `jmp pin` test, not
+; the `jmp x--`. Where `jmp x--`'s target is the very next instruction it only
+; counts (X never gates the exit); where the two paths diverge, X provides a
+; timeout. 
+
+.program sync_period
+
+.wrap_target
+    pull block              ; CPU requests a measurement, OSR = preload
+    mov x, osr
+
+    wait 0 pin 0
+    wait 1 pin 0            ; rising edge A (post-inversion = pulse start)
+
+pulse:                      ; --- count while HIGH (pulse width) ---
+    jmp x-- pulse_next
+pulse_next:
+    jmp pin, pulse          ; still high? keep counting (2 cycles/iter)
+
+    mov isr, x
+    push block              ; report 1: pulse width count
+
+    mov x, osr              ; reload the preload (OSR still holds it)
+
+gap:                        ; --- count while LOW (rest of the period) ---
+    jmp pin, gap_done       ; pin went high -> next period started
+    jmp x-- gap             ; still low, keep counting (2 cycles/iter)
+gap_done:
+    mov isr, x
+    push block              ; report 2: gap count
+.wrap

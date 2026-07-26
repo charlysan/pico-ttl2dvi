@@ -59,10 +59,21 @@ void video_init(void) {
     multicore_launch_core1(core1_main);
 }
 
-void video_test_pattern(void) {
+void video_test_pattern_stripes(void) {
     // 0xCC.. = 2-bit levels 0,3,0,3,... -> 1px black/white stripes.
     for (uint r = 0; r < FB_H; r++) {
         uint32_t *row = &framebuf[r * FB_WORDS];
         for (uint w = 0; w < FB_WORDS; w++) row[w] = 0xCCCCCCCCu;
+    }
+}
+
+void video_test_pattern_checkerboard(void) {
+    // 1px checkerboard: even rows 0xCC (B,W,B,W..), odd rows 0x33 (W,B,W,B..) --
+    // opposite phase per row.
+    for (uint r = 0; r < FB_H; r+=1) {
+        uint32_t *row = &framebuf[r * FB_WORDS];
+        uint32_t pat = (r & 1) ? 0x33333333u : 0xCCCCCCCCu;
+        for (uint w = 0; w < FB_WORDS; w++)
+            row[w] = pat;
     }
 }

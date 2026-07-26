@@ -15,6 +15,9 @@ void video_init(void);
 
 // Fill the framebuffer with 1px alternating black/white vertical stripes -- the
 // highest-frequency pattern, the TMDS torture test. Proves the DVI path.
-void video_test_pattern(void);
+void video_test_pattern_stripes(void);
+
+// Fill the framebuffer with 1px checkerboard
+void video_test_pattern_checkerboard(void);
 
 #endif
