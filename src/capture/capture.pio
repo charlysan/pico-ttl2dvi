@@ -8,10 +8,15 @@
 ; `samples_per_line` pixels; autopush @32 packs 16 pixels/word (2 bits each:
 ; bit0=VIDEO, bit1=INTENSITY).
 ;
-; Config (in C): in_base = GP20 (VIDEO); in_shift right, autopush @32;
-;   set_jmp_pin unused. HSYNC is GP27 (must match PIN_HSYNC in board.h) -- an
-;   absolute `wait gpio`, which reads the raw pad regardless of the PIO gpio base.
+; Config (in C): in_base = GP20 (VIDEO); in_shift right, autopush @32.
 ; Two values pulled once at SM start: (1) samples_per_line-1 -> Y; (2) delay.
+;
+; HSYNC = GP27, hardcoded in the `wait gpio 27` below. This is FIXED across
+; MDA/CGA/EGA: the data lines grow upward on GP20-25 (MDA 2, CGA 4, EGA 6 bits
+; -> `in pins, N`) while HSYNC/VSYNC stay at the top (27/26).
+; capture.c static-asserts PIN_HSYNC == 27 so board.h stays the source of truth
+; and any drift fails the build. (`wait gpio` reads the raw pad regardless of
+; the PIO gpio base.)
 
 .program capture
 

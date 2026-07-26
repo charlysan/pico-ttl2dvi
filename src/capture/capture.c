@@ -9,6 +9,10 @@
 #include "sync.h"
 #include "capture.h"
 
+// capture.pio hardcodes `wait gpio 27` for the HSYNC edge (fixed across
+// MDA/CGA/EGA). board.h is the source of truth; this catches any drift.
+_Static_assert(PIN_HSYNC == 27, "capture.pio hardcodes HSYNC at gpio 27 -- update it if PIN_HSYNC changes");
+
 // pio0 (base 0): capture pins 20-27 are within 0-31. DVI owns pio1.
 static PIO  pio = pio0;
 static uint sm, prog_off;
