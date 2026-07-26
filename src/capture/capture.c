@@ -6,6 +6,7 @@
 #include "hardware/clocks.h"
 #include "capture.pio.h"
 #include "board.h"
+#include "source.h"
 #include "sync.h"
 #include "capture.h"
 
@@ -54,8 +55,8 @@ static uint32_t rawbuf[WORDS_TOTAL];
 
 void capture_init(void)
 {
-    g_px_cyc = clock_get_hz(clk_sys) / 16000000u;      // ~16 at 256 MHz
-    g_spp    = (float)g_px_cyc / (2.0f * PIO_CLKDIV);   // ~2.0
+    g_px_cyc = clock_get_hz(clk_sys) / g_src->dot_clock_hz;  // ~16 at 256 MHz (MDA)
+    g_spp    = (float)g_px_cyc / (2.0f * PIO_CLKDIV);        // ~2.0
 
     prog_off = pio_add_program(pio, &capture_program);
     sm = pio_claim_unused_sm(pio, true);

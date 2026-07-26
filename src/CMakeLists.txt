@@ -1,6 +1,7 @@
 # ttl2dvi_core: the shared module library that apps link. Grows as modules are
 # added. For now: console + video (DVI output), plus config headers.
 add_library(ttl2dvi_core STATIC
+    config/source.c
     console/console.c
     video/video.c
     capture/sync.c
