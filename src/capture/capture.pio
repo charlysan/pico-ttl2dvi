@@ -1,0 +1,34 @@
+; 2bpp pixel sampler: capture VIDEO (in_base=GP20) + INTENSITY (GP21) two bits
+; per pixel, re-locking to HSYNC on every line. Single SM, no CPU in the
+; per-line path.
+;
+; Per pixel = 2 SM cycles (`in` + `jmp`); clkdiv (set in C) makes those 2 cycles
+; span the wanted sub-pixel sampling rate. After each HSYNC rising edge the SM
+; burns a CPU-supplied phase/offset delay (to reach active video) then samples
+; `samples_per_line` pixels; autopush @32 packs 16 pixels/word (2 bits each:
+; bit0=VIDEO, bit1=INTENSITY).
+;
+; Config (in C): in_base = GP20 (VIDEO); in_shift right, autopush @32;
+;   set_jmp_pin unused. HSYNC is GP27 (must match PIN_HSYNC in board.h) -- an
+;   absolute `wait gpio`, which reads the raw pad regardless of the PIO gpio base.
+; Two values pulled once at SM start: (1) samples_per_line-1 -> Y; (2) delay.
+
+.program capture
+
+    pull block              ; OSR = samples_per_line - 1
+    mov y, osr              ; Y = per-line reload count
+    pull block              ; OSR = delay (offset-to-active + phase); stays in OSR
+
+.wrap_target
+    wait 0 gpio 27
+    wait 1 gpio 27          ; HSYNC rising edge: t=0
+
+    mov x, osr              ; X = delay (OSR preserved for next line)
+delay:
+    jmp x-- delay           ; burn (delay+1) SM cycles -> reach active video
+
+    mov x, y                ; X = samples_per_line - 1
+sample:
+    in pins, 2              ; sample VIDEO+INTENSITY; autopush @32 -> 16 px/word
+    jmp x-- sample          ; 2 cyc/sample
+.wrap                       ; line done -> re-lock on the next HSYNC edge

@@ -51,21 +51,37 @@ static bool rx_get(uint sm, uint32_t *v)
     return true;
 }
 
-static uint32_t measure(uint sm, uint32_t preload)
+// Hybrid function that calcultes period (used to output period/freq. [status], and pulse [capture])
+// Returns period in cycles (0 = no signal). On success, *pulse (if non-NULL)
+// gets the high-time in cycles -- for active-high HSYNC that's the sync pulse,
+// which capture framing uses to skip sync+back-porch to active video.
+static uint32_t measure(uint sm, uint32_t preload, uint32_t *pulse)
 {
     pio_sm_put_blocking(pio, sm, preload);
     uint32_t pr, gr;
     if (!rx_get(sm, &pr) || !rx_get(sm, &gr))
     {
         sm_restart(sm);
+        if (pulse) *pulse = 0;
         return 0;
     }
-    if (pr <= 1 || gr <= 1)
-        return 0; // a countdown ran out -> no edge
-    return (preload - pr) * 2 + (preload - gr) * 2;
+    if (pr <= 1 || gr <= 1) // a countdown ran out -> no edge
+    {
+        if (pulse) *pulse = 0;
+        return 0;
+    }
+    uint32_t high = (preload - pr) * 2;
+    uint32_t low  = (preload - gr) * 2;
+
+    // sync pulse width is stored in pulse pointer (if the caller provides one)
+    if (pulse) *pulse = high;
+    return high + low;
 }
 
 // HSYNC ~18 kHz: period ~14k cycles @256 MHz, so a 100k preload is ample.
-uint32_t sync_hsync_period(void) { return measure(sm_h, 100000); }
+uint32_t sync_hsync_period(void) { return measure(sm_h, 100000, NULL); }
 // VSYNC ~50 Hz: period ~5.1M cycles @256 MHz; preload must exceed period/2.
-uint32_t sync_vsync_period(void) { return measure(sm_v, 6000000); }
+uint32_t sync_vsync_period(void) { return measure(sm_v, 6000000, NULL); }
+
+// Full HSYNC measurement: period returned, *pulse set (both in cycles).
+uint32_t sync_hsync(uint32_t *pulse) { return measure(sm_h, 100000, pulse); }

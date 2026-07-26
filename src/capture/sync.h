@@ -21,4 +21,9 @@ void sync_init(void);
 uint32_t sync_hsync_period(void);
 uint32_t sync_vsync_period(void);
 
+// Full HSYNC measurement: returns period (cycles, 0 = no signal) and, when
+// non-NULL, sets *pulse to the high-time (the sync pulse). Used by capture
+// framing to place the sampling window at active video.
+uint32_t sync_hsync(uint32_t *pulse);
+
 #endif

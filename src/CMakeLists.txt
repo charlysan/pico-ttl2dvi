@@ -4,10 +4,12 @@ add_library(ttl2dvi_core STATIC
     console/console.c
     video/video.c
     capture/sync.c
+    capture/capture.c
 )
 
-# PIO header for the sync-period countdown program (HSYNC/VSYNC measurement).
+# PIO headers: sync-period countdown (HSYNC/VSYNC measure) + the 2bpp sampler.
 pico_generate_pio_header(ttl2dvi_core ${CMAKE_CURRENT_LIST_DIR}/capture/sync_period.pio)
+pico_generate_pio_header(ttl2dvi_core ${CMAKE_CURRENT_LIST_DIR}/capture/capture.pio)
 
 # PUBLIC so apps that link ttl2dvi_core inherit these headers, libs, and the
 # libdvi config defines. The defines MUST reach the app too: the app compiles
@@ -24,6 +26,7 @@ target_link_libraries(ttl2dvi_core PUBLIC
     pico_stdlib
     pico_multicore
     hardware_pio
+    hardware_dma
     hardware_clocks
     libdvi
 )

@@ -10,6 +10,7 @@
 #include "version.h"
 #include "video.h"
 #include "sync.h"
+#include "capture.h"
 
 static void cmd_version(int argc, char **argv) {
     (void)argc; (void)argv;
@@ -66,10 +67,17 @@ static void cmd_status(int argc, char **argv) {
     }
 }
 
+// Grab one frame of VIDEO+INTENSITY and dump it over USB (host: tools/grab.py).
+static void cmd_capture(int argc, char **argv) {
+    (void)argc; (void)argv;
+    capture_dump_frame();
+}
+
 int main(void) {
     // DVI (+ the 256 MHz overclock) first, before stdio brings up USB.
     video_init();
     sync_init();                 // HSYNC/VSYNC measurement SMs on pio0
+    capture_init();              // sampler SM + DMA on pio0 (needs sync_init first)
 
     stdio_init_all();
     // TEMPORARY: wait for USB so the banner is seen. Fine now (DVI already runs
@@ -81,6 +89,7 @@ int main(void) {
     console_register("bootsel", cmd_bootsel, "reboot into BOOTSEL to reflash");
     console_register("test",    cmd_test,    "DVI pattern: test [0=stripes|1=checker]");
     console_register("status",  cmd_status,  "HSYNC/VSYNC frequency");
+    console_register("capture", cmd_capture, "grab a frame, dump over USB");
     console_init();
 
     while (true) {
