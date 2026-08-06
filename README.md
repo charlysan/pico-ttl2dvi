@@ -1,4 +1,5 @@
 # pico-ttl2dvi
+[![Build](https://github.com/charlysan/pico-ttl2dvi/actions/workflows/build_and_publish.yml/badge.svg?branch=main)](https://github.com/charlysan/pico-ttl2dvi/actions/workflows/build_and_publish.yml)
 
 Firmware for the RP2350 that captures **digital TTL video** from retro PC
 graphics cards and outputs **DVI/HDMI**, live.
@@ -219,6 +220,9 @@ single source of truth for the board. The output is `build/apps/ttl2dvi/ttl2dvi.
 
 Tested on a [Waveshare RP2350-PiZero](https://www.waveshare.com/wiki/RP2350-PiZero) (RP2350B, 48 GPIO, 520 KB SRAM).
 
+## Screenshots
+
+Check [Wiki](https://github.com/charlysan/pico-ttl2dvi/wiki/Pico-TTL2DVI-Intro) for some screenshots.
 
 ## Acknowledgements
 
