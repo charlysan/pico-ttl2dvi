@@ -1,84 +1,34 @@
 // ttl2dvi -- full capture -> DVI pipeline.
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "pico/stdlib.h"
-#include "pico/bootrom.h"
-#include "hardware/watchdog.h"
-#include "hardware/clocks.h"
 #include "console.h"
-#include "version.h"
+#include "commands.h"
 #include "video.h"
 #include "sync.h"
 #include "capture.h"
 #include "view.h"
-
-static void cmd_version(int argc, char **argv) {
-    (void)argc; (void)argv;
-    printf("ttl2dvi %s\n", TTL2DVI_VERSION);
-}
-
-// Restart the firmware.
-static void cmd_reboot(int argc, char **argv) {
-    (void)argc; (void)argv;
-    printf("rebooting...\n");
-    sleep_ms(50);              // let the line flush over USB first
-    watchdog_reboot(0, 0, 0);
-}
-
-// Reboot into BOOTSEL (USB mass-storage) so a new .uf2 can be flashed without
-// the physical button -- the "quit to reflash" command during development.
-static void cmd_bootsel(int argc, char **argv) {
-    (void)argc; (void)argv;
-    printf("entering BOOTSEL (reflash mode)...\n");
-    sleep_ms(50);
-    reset_usb_boot(0, 0);
-}
-
-// Show a DVI test pattern. Optional arg: 0 = stripes (default), 1 = checkerboard.
-static void cmd_test(int argc, char **argv) {
-    int which = (argc >= 2) ? atoi(argv[1]) : 0;
-    if (which == 1) {
-        video_test_pattern_checkerboard();
-        printf("checkerboard on DVI\n");
-    } else {
-        video_test_pattern_stripes();
-        printf("stripes on DVI\n");
-    }
-}
-
-// Report HSYNC/VSYNC frequency, measured live via the pio0 countdown SMs.
-static void cmd_status(int argc, char **argv) {
-    (void)argc; (void)argv;
-    uint32_t f  = clock_get_hz(clk_sys);
-    uint32_t ph = sync_hsync_period();     // clk_sys cycles, 0 = no signal
-    uint32_t pv = sync_vsync_period();
-
-    if (ph) {
-        uint32_t h = (uint32_t)((uint64_t)f * 100 / ph);   // Hz x100
-        printf("HSYNC %lu.%02lu Hz", (unsigned long)(h / 100), (unsigned long)(h % 100));
-    } else {
-        printf("HSYNC --");
-    }
-    if (pv) {
-        uint32_t v = (uint32_t)((uint64_t)f * 100 / pv);
-        printf("   VSYNC %lu.%02lu Hz\n", (unsigned long)(v / 100), (unsigned long)(v % 100));
-    } else {
-        printf("   VSYNC --\n");
-    }
-}
-
-// Grab one frame of VIDEO+INTENSITY and dump it over USB (host: tools/grab.py).
-static void cmd_capture(int argc, char **argv) {
-    (void)argc; (void)argv;
-    capture_dump_frame();
-}
+#include "settings.h"
+#include "source.h"
 
 int main(void) {
+    // The source card comes FIRST of all: it decides the sysclk, the mode table
+    // and the sampler's pin count, so everything below reads g_src as settled.
+    source_apply_boot_choice();
+
+    // Saved profiles next: a pure flash read, no side effects, so it is safe
+    // before anything else is up -- and video_init needs the boot slot's mode.
+    settings_init();
+    int boot_mode = settings_boot_mode();          // -1 = no boot slot
+    if (boot_mode >= 0) video_preselect_mode((uint)boot_mode);
+
     // DVI (+ the 256 MHz overclock) first, before stdio brings up USB.
     video_init();
     sync_init();                 // HSYNC/VSYNC measurement SMs on pio0
     capture_init();              // sampler SM + DMA on pio0 (needs sync_init first)
+
+    // The rest of the boot slot (framing, levels) -- after capture_init, so
+    // nothing it initialises overwrites the restored values.
+    settings_apply_boot();
 
     stdio_init_all();
     // Do NOT wait for USB: the live pipeline must run whether or not a PC is
@@ -90,6 +40,22 @@ int main(void) {
     console_register("test",    cmd_test,    "DVI pattern: test [0=stripes|1=checker]");
     console_register("status",  cmd_status,  "HSYNC/VSYNC frequency");
     console_register("capture", cmd_capture, "grab a frame, dump over USB");
+    console_register("source",  cmd_source,  "source card: source [n|name] (reboots)");
+    console_register("mode",    cmd_mode,    "DVI output mode: mode [n] (reboots)");
+    console_register("bp",      cmd_bp,      "framing: bp [n|+|-] (whole px)");
+    console_register("phase",   cmd_phase,   "sampling instant: phase [n|+|-] (sysclk)");
+    console_register("dotclock", cmd_dotclock, "trim dot clock: dotclock [MHz|+|-]");
+    console_register("vscale",  cmd_vscale,  "vertical scale: vscale [1|2|+|-]");
+    console_register("vpos",    cmd_vpos,    "vertical position: vpos [n|+|-] (source lines)");
+    console_register("hpos",    cmd_hpos,    "horizontal position: hpos [n|+|-] (source px)");
+    console_register("mdalevels", cmd_mda_levels, "MDA gray levels: mdalevels [normal [bright]] (0..3)");
+    console_register("slots",   cmd_slots,   "list the saved profiles");
+    console_register("save",    cmd_save,    "save current settings: save <n> [name]");
+    console_register("load",    cmd_load,    "apply a saved profile: load <n>");
+    console_register("clear",   cmd_clear,   "erase a profile: clear <n>");
+    console_register("boot",    cmd_boot,    "auto-load profile: boot [n|off]");
+    console_register("dump",    cmd_dump,    "print all profiles as hex (backup)");
+    console_register("restore", cmd_restore, "restore profiles: restore <hex>");
     console_init();
 
     // Live view: grab a frame, composite it into the DVI framebuffer, service

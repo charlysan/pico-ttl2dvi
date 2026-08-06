@@ -1,19 +1,13 @@
-// ttl2dvi DVI standalone test card.
+// ttl2dvi DVI standalone test app.
 //
 // Purpose: prove the DVI output path in isolation, before wiring the capture
 // framebuffer into it -- the DVI pin config + PIO GPIO base (from board.h),
 // the overclock, and the monitor. If a monitor shows 8 colour bars, the whole
-// output chain works. Also the first consumer of the board-profile abstraction:
-// build for another board with `cmake -DTTL_BOARD=... ..`.
+// output chain works.
 //
 // Clocked at 256 MHz on purpose: that is the capture engine's clock, so once
 // this works we can run capture + DVI on one sysclk. It drives the 640x480
-// timing ~1.7% fast (pixel clock 25.6 vs 25.175 MHz -> ~61 Hz); virtually all
-// monitors accept it. If yours doesn't lock, set DVI_CLK_KHZ to 252000 (the
-// DVI-native rate) and it will run exactly 60 Hz.
-//
-// A reduced 320x240 framebuffer (RGB565, ~150 KB) is pixel-doubled to 640x480
-// by the DVI scanout -- a full 640x480x16bpp buffer would not fit in SRAM.
+// timing ~1.7% fast (pixel clock 25.6 vs 25.175 MHz -> ~61 Hz);
 
 #include <stdio.h>
 #include "pico/stdlib.h"

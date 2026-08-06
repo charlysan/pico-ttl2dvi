@@ -4,7 +4,7 @@
 #include "console.h"
 
 #define MAX_CMDS 32
-#define LINE_MAX 64
+#define LINE_MAX CONSOLE_LINE_MAX
 #define MAX_ARGS 8
 #define PROMPT   "ttl2dvi> "
 

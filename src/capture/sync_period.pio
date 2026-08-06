@@ -5,13 +5,13 @@
 ; using `wait ... pin 0` (relative to the SM's IN base) instead makes the
 ; program pin-agnostic. Each SM is pointed at its own pin in C via
 ; sm_config_set_in_pins() (for the waits) and sm_config_set_jmp_pin() (for
-; the counting loops) -- both set to the same GPIO.
+; the counting loops) - both set to the same GPIO.
 ;
 ; Polarity: this program measures pulse then gap; PERIOD = pulse + gap either
 ; way, so for FREQUENCY the polarity is irrelevant and sync.c uses it WITHOUT
 ; any pad inversion (both HSYNC and VSYNC, even though MDA VSYNC is active-low).
 ; The gpio_set_inover() trick is only needed if a correct *pulse width* (not
-; just the period) is wanted -- e.g. distinguishing sync pulse from back porch
+; just the period) is wanted - e.g. distinguishing sync pulse from back porch
 ; for capture framing. Must be applied there, not here. NOTE the ordering trap for
 ; that case: set the inover AFTER pio_gpio_init (which resets INOVER).
 ;

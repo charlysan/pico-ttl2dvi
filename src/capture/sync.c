@@ -53,7 +53,7 @@ static bool rx_get(uint sm, uint32_t *v)
 
 // Hybrid function that calcultes period (used to output period/freq. [status], and pulse [capture])
 // Returns period in cycles (0 = no signal). On success, *pulse (if non-NULL)
-// gets the high-time in cycles -- for active-high HSYNC that's the sync pulse,
+// gets the high-time in cycles - for active-high HSYNC that's the sync pulse,
 // which capture framing uses to skip sync+back-porch to active video.
 static uint32_t measure(uint sm, uint32_t preload, uint32_t *pulse)
 {

@@ -5,6 +5,10 @@
 //
 // Commands are REGISTERED
 
+// Longest input line. Must fit a whole `dump` blob pasted into `restore`
+// (settings page + CRC, as hex) plus the command word -- grows with the slot.
+#define CONSOLE_LINE_MAX 384
+
 // Command handler. argv[0] is the command name; argc counts all tokens
 // (whitespace-split). Tokens point into an internal line buffer valid only for
 // the duration of the call.

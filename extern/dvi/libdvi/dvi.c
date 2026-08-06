@@ -24,7 +24,13 @@ void dvi_init(struct dvi_inst *inst, uint spinlock_tmds_queue, uint spinlock_col
 	inst->dvi_frame_count = 0;
 
 	dvi_audio_init(inst);
+	// [ttl2dvi patch] Resolve the runtime vertical repeat before anything reads
+	// it, and redo the derived line count that dvi_timing_compute_derived just
+	// worked out from the compile-time macro.
+	if (!inst->v_repeat)
+		inst->v_repeat = DVI_VERTICAL_REPEAT;
 	dvi_timing_compute_derived(inst->timing, &inst->timing_derived);
+	inst->timing_derived.logical_lines = inst->timing->v_active_lines / inst->v_repeat;
 	inst->v_active_last = inst->timing->v_active_lines - (uint)inst->blank_settings.bottom;
 	dvi_timing_state_init(&inst->timing_state);
 	dvi_serialiser_init(&inst->ser_cfg);
@@ -263,7 +269,7 @@ static void __dvi_func(dvi_dma_irq_handler)(struct dvi_inst *inst) {
 			{
 				if (queue_try_peek_u32(&inst->q_tmds_valid, &tmdsbuf))
 				{
-					if (inst->timing_state.v_ctr % DVI_VERTICAL_REPEAT == DVI_VERTICAL_REPEAT - 1)
+					if (inst->timing_state.v_ctr % inst->v_repeat == inst->v_repeat - 1)
 					{
 						queue_remove_blocking_u32(&inst->q_tmds_valid, &tmdsbuf);
 						inst->tmds_buf_release[0] = tmdsbuf;
@@ -273,7 +279,7 @@ static void __dvi_func(dvi_dma_irq_handler)(struct dvi_inst *inst) {
 				{
 					// No valid scanline was ready (generates solid red scanline)
 					tmdsbuf = NULL;
-					if (inst->timing_state.v_ctr % DVI_VERTICAL_REPEAT == DVI_VERTICAL_REPEAT - 1)
+					if (inst->timing_state.v_ctr % inst->v_repeat == inst->v_repeat - 1)
 						++inst->late_scanline_ctr;
 				}
 
@@ -302,7 +308,7 @@ static void __dvi_func(dvi_dma_irq_handler)(struct dvi_inst *inst) {
 			// Blank lines at the top/bottom margin do not consume colour data, so
 			// calling the callback for them would advance the application's scanline
 			// counter out of sync with what is actually displayed.
-			if (!is_blank_line && inst->scanline_callback && inst->timing_state.v_ctr % DVI_VERTICAL_REPEAT == DVI_VERTICAL_REPEAT - 1)
+			if (!is_blank_line && inst->scanline_callback && inst->timing_state.v_ctr % inst->v_repeat == inst->v_repeat - 1)
 			{
 				static uint next_line = TMDS_PREBUFFERING_LINES - 1;
 				if (++next_line >=inst->timing_derived.logical_lines)

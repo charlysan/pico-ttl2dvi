@@ -31,6 +31,13 @@ struct dvi_inst {
 	dvi_callback_t scanline_callback;
 	dvi_callback_t vblank_callback;
 
+	// [ttl2dvi patch] Vertical repeat as a RUNTIME value instead of the
+	// DVI_VERTICAL_REPEAT compile-time macro, so one binary can drive sources
+	// that need different values (full-res mono vs half-res palette encode).
+	// Set it before dvi_init(); 0 means "use DVI_VERTICAL_REPEAT". Upstream
+	// behaviour is unchanged for anyone who leaves it alone.
+	uint v_repeat;
+
 	// Precomputed from timing + blank_settings at dvi_init() time.
 	// Cached to avoid repeated division/pointer-chase in the IRQ hot path.
 	struct dvi_timing_derived timing_derived;

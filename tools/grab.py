@@ -8,14 +8,19 @@ Sends "capture" to the console, reads the block the firmware emits between
 "@@@BEGIN" and "@@@END":
 
     @@@BEGIN
-    W <width> H <height>
-    <height rows of <width> digits, each 0..3 = VIDEO | INTENSITY<<1>
+    W <width> H <height> BPP <bits>
+    <height rows of <width> HEX digits>
     @@@END
 
-and writes a grayscale PNG (needs Pillow) plus a PGM (always, no deps). The
-2-bit value maps to grayscale linearly (0,1,2,3 -> 0,85,170,255): 0 = black,
-1 = normal (VIDEO), 3 = bright (VIDEO+INTENSITY), 2 = anomalous (should not
-occur).
+BPP says how to read the digits, and the two sources differ:
+
+  BPP 2  MDA: 0..3 = VIDEO | INTENSITY<<1 -> grayscale (0,85,170,255).
+              0 = black, 1 = normal, 3 = bright, 2 = anomalous.
+  BPP 4  CGA640: 0..f = I | R<<1 | G<<2 | B<<3 -> the 16-colour RGBI palette.
+
+Writes a PNG (needs Pillow) plus a netpbm file that needs no deps: PGM for
+mono, PPM for colour. The `BPP` field is optional so dumps from firmware before
+it existed still load, as mono.
 """
 import sys
 
@@ -25,6 +30,23 @@ except ImportError:
     sys.exit("need pyserial:  pip install pyserial")
 
 LEVELS = [0, 85, 170, 255]   # 2-bit value -> gray
+
+
+def cga_palette():
+    """CGA RGBI -> RGB, matching video.c's build_cga_palette exactly (including
+    the brown fix), so a dump looks like what the DVI output shows."""
+    pal = []
+    for i in range(16):
+        I, R, G, B = i & 1, (i >> 1) & 1, (i >> 2) & 1, (i >> 3) & 1
+        hi, lo = (255, 85) if I else (170, 0)
+        r, g, b = (hi if R else lo), (hi if G else lo), (hi if B else lo)
+        if not I and R and G and not B:
+            g = 85                      # brown, not dark yellow
+        pal.append((r, g, b))
+    return pal
+
+
+CGA = cga_palette()
 
 
 def read_frame(port):
@@ -41,29 +63,39 @@ def read_frame(port):
     body = data.split(b"@@@BEGIN", 1)[1].split(b"@@@END", 1)[0]
     lines = [ln.strip() for ln in body.decode("ascii", "ignore").splitlines()]
     lines = [ln for ln in lines if ln]
-    hdr = lines[0].split()                       # "W <w> H <h>"
-    if len(hdr) != 4 or hdr[0] != "W" or hdr[2] != "H":
+    hdr = lines[0].split()                       # "W <w> H <h> [BPP <n>]"
+    if len(hdr) < 4 or hdr[0] != "W" or hdr[2] != "H":
         sys.exit("unexpected header: %r" % lines[0])
     w, h = int(hdr[1]), int(hdr[3])
+    bpp = int(hdr[5]) if len(hdr) >= 6 and hdr[4] == "BPP" else 2
     rows = lines[1:1 + h]
-    return w, h, rows
+    return w, h, bpp, rows
 
 
-def save_pgm(path, w, h, rows):
-    with open(path, "wb") as f:
-        f.write(b"P5\n%d %d\n255\n" % (w, h))
-        for r in rows:
-            r = r.ljust(w, "0")[:w]
-            f.write(bytes(LEVELS[int(c) & 3] for c in r))
+def save_netpbm(path, w, h, bpp, rows):
+    """PGM (grayscale) for mono, PPM (colour) for CGA. No dependencies."""
+    if bpp == 2:
+        with open(path, "wb") as f:
+            f.write(b"P5\n%d %d\n255\n" % (w, h))
+            for r in rows:
+                r = r.ljust(w, "0")[:w]
+                f.write(bytes(LEVELS[int(c, 16) & 3] for c in r))
+    else:
+        with open(path, "wb") as f:
+            f.write(b"P6\n%d %d\n255\n" % (w, h))
+            for r in rows:
+                r = r.ljust(w, "0")[:w]
+                f.write(bytes(v for c in r for v in CGA[int(c, 16) & 15]))
 
 
-def save_png(path, w, h, rows):
+def save_png(path, w, h, bpp, rows):
     from PIL import Image
-    img = Image.new("L", (w, h))
+    img = Image.new("L" if bpp == 2 else "RGB", (w, h))
     px = img.load()
     for y, r in enumerate(rows):
         for x in range(min(w, len(r))):
-            px[x, y] = LEVELS[int(r[x]) & 3]
+            v = int(r[x], 16)
+            px[x, y] = LEVELS[v & 3] if bpp == 2 else CGA[v & 15]
     img.save(path)
 
 
@@ -72,17 +104,18 @@ def main():
         sys.exit(__doc__)
     port = sys.argv[1]
     out = sys.argv[2] if len(sys.argv) > 2 else "frame.png"
-    w, h, rows = read_frame(port)
-    print("got %dx%d, %d rows" % (w, h, len(rows)))
+    w, h, bpp, rows = read_frame(port)
+    print("got %dx%d, %d bpp (%s), %d rows"
+          % (w, h, bpp, "mono" if bpp == 2 else "CGA colour", len(rows)))
 
-    pgm = out.rsplit(".", 1)[0] + ".pgm"
-    save_pgm(pgm, w, h, rows)
-    print("wrote", pgm)
+    raw = out.rsplit(".", 1)[0] + (".pgm" if bpp == 2 else ".ppm")
+    save_netpbm(raw, w, h, bpp, rows)
+    print("wrote", raw)
     try:
-        save_png(out, w, h, rows)
+        save_png(out, w, h, bpp, rows)
         print("wrote", out)
     except ImportError:
-        print("(install Pillow for PNG:  pip install pillow -- %s still written)" % pgm)
+        print("(install Pillow for PNG:  pip install pillow -- %s still written)" % raw)
 
 
 if __name__ == "__main__":

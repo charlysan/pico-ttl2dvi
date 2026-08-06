@@ -33,7 +33,7 @@ delay:
     jmp x-- delay           ; burn (delay+1) SM cycles -> reach active video
 
     mov x, y                ; X = samples_per_line - 1
-sample:
+public sample:
     in pins, 2              ; sample VIDEO+INTENSITY; autopush @32 -> 16 px/word
     jmp x-- sample          ; 2 cyc/sample
 .wrap                       ; line done -> re-lock on the next HSYNC edge
