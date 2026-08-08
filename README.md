@@ -61,7 +61,7 @@ The minimal hookup. The 330 Ω limits current into the RP2350 pad's clamp diode
 With the pad clamping, each asserted line draws a few mA from the card. Power
 the Pico first, then the PC; power the PC down first.
 
-### Buffered (74HCT541 + resistors) - recommended
+### Buffered (74HCT541 + resistors) - recommended, through-hole
 
 A 5 V octal buffer between card and Pico. Its CMOS inputs draw ~0 current, so
 the video card's drivers are not loaded, and a fault on the Pico side cannot
@@ -90,7 +90,40 @@ Both `/OE` pins (1 and 19) must go to GND. Tie unused A inputs
 to GND, and keep one common ground between card, buffer and Pico.
 
 Use the **HCT** part, not plain HC: its TTL-level input thresholds read a 5 V
-TTL high reliably.
+TTL high reliably at 5 V Vcc.
+
+### Buffered (74LVC245A, no resistors) - best
+
+The same idea, but powered at **3.3 V**. LVC inputs accept 5.5 V regardless of
+Vcc - 5 V tolerance is a designed-in property of the family, so the card connects 
+straight in and the outputs are already 3.3 V logic.
+
+```
+                    ┌───────── 74LVC245A ─────────┐
+                    │ (3.3V, 100nF across 10-20p) │
+   DE-9 7  VIDEO ──►│ 2  A1                B1  18 │────►  GPIO 20
+   DE-9 6  INTEN ──►│ 3  A2                B2  17 │────►  GPIO 21
+   DE-9 3  RED   ──►│ 4  A3                B3  16 │────►  GPIO 22
+   DE-9 4  GREEN ──►│ 5  A4                B4  15 │────►  GPIO 23
+   DE-9 5  BLUE  ──►│ 6  A5                B5  14 │────►  GPIO 24
+   DE-9 9  VSYNC ──►│ 7  A6                B6  13 │────►  GPIO 26
+   DE-9 8  HSYNC ──►│ 8  A7                B7  12 │────►  GPIO 27
+             GND ──►│ 9  A8   (unused)     B8  11 │  n/c
+                    │                             │
+            +3V3 ──►│ 1  DIR                      │  DIR high = A→B
+             GND ──►│ 19 /OE              Vcc  20 │◄── +3V3 (Pico 3V3 pin)
+                    │ 10 GND                      │
+                    └─────────────────────────────┘
+
+   DE-9 1,2 GND ─────────────── common ground ──────────────►  GND
+```
+
+`DIR` high and `/OE` low enable the A→B direction; both must be tied, not left
+floating. Power it from the Pico's **3V3** pin - the 5 V tolerance depends on
+Vcc being 3.3 V. Tie the unused A8 to GND.
+
+Beyond dropping the resistors, this also removes the power-sequencing rule: LVC
+supports partial power-down, so the card may be live while the Pico is off.
 
 ## How it works
 
@@ -223,6 +256,10 @@ Tested on a [Waveshare RP2350-PiZero](https://www.waveshare.com/wiki/RP2350-PiZe
 ## Screenshots
 
 Check [Wiki](https://github.com/charlysan/pico-ttl2dvi/wiki/Pico-TTL2DVI-Intro) for some screenshots.
+
+## Discussion
+
+- [VCFed](https://forum.vcfed.org/index.php?threads/pico-ttl2dvi-convert-ttl-video-to-hdmi.1258490/)
 
 ## Acknowledgements
 
