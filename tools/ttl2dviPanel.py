@@ -17,6 +17,7 @@ reply lines. Replies this panel parses:
     status      HSYNC 18155.41 Hz   VSYNC 49.04 Hz      ("--" when no input)
     bp          bp = 17 px (horizontal back-porch trim, whole source pixels)
     phase       phase = 4/16 px (sampling instant within the pixel, ...)
+    dotclock    dotclock = 14.333 MHz   px_cyc 18  (card default)
     vscale      vscale = 1x vertical (horizontal is always 1:1)
     vpos        vpos = 0 source lines (+ moves the image down)
     hpos        hpos = 0 source px (+ moves the image right)
@@ -37,6 +38,8 @@ from serial.tools import list_ports
 import tkinter as tk
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
+
+PANEL_VERSION = "v0.1"
 
 PROMPT = "ttl2dvi>"
 BAUD = 115200
@@ -71,6 +74,9 @@ CAPTURE_KNOBS = [
     ("bp",    "bp",    "Back porch / left  (bp)", 0, 400, 17),
     ("phase", "phase", "Sample phase  (sysclk)",  0,  15,  4),
 ]
+# dotclock is not in the list above: it is a float (MHz), handled separately.
+# Only a placeholder until the device reports its own on connect.
+DOTCLOCK_DEFAULT = 16.000
 # Display-side: these move/scale the already-captured image in the framebuffer.
 DISPLAY_KNOBS = [
     ("vscale", "vscale", "Vertical scale  (1 | 2)",    1,   4,  1),
@@ -100,6 +106,12 @@ def parse_kv(text, key):
     Tolerates the trailing unit or fraction, e.g. `phase = 4/16 px`."""
     m = re.search(re.escape(key) + r"\s*=\s*(-?\d+)", text or "")
     return int(m.group(1)) if m else None
+
+
+def parse_dotclock(text):
+    """`dotclock = 14.333 MHz   px_cyc 18  (card default)` -> 14.333, or None."""
+    m = re.search(r"dotclock\s*=\s*([\d.]+)\s*MHz", text or "")
+    return float(m.group(1)) if m else None
 
 
 def parse_levels(text):
@@ -349,7 +361,7 @@ class App:
         self.spins = {}                   # knob attr -> Spinbox
         self.mode_buttons = []
 
-        root.title("ttl2dvi control panel")
+        root.title("ttl2dvi control panel  %s" % PANEL_VERSION)
         root.minsize(620, 700)
         outer = ttk.Frame(root, padding=8)
         outer.pack(fill="both", expand=True)
@@ -372,12 +384,12 @@ class App:
         self._build_readings(left)
         self._build_mode(left)
         self._build_capture(left)
+        self._build_diag(left)
 
-        self._build_display(left)
+        self._build_display(right)
         self._build_levels(right)
         self._build_profiles(right)
         self._build_test(right)
-        self._build_diag(right)
 
         self._build_raw(self.bottom)
         self._build_console(self.bottom)
@@ -496,7 +508,7 @@ class App:
                                           ("Mode", "mode")]):
             ttk.Label(grid, text=label + ":").grid(row=i, column=0, sticky="w",
                                                    padx=(0, 4), pady=1)
-            v = ttk.Label(grid, text="—", width=18)
+            v = ttk.Label(grid, text="-", width=18)
             v.grid(row=i, column=1, sticky="w", padx=(0, 10), pady=1)
             self.meas[key] = v
 
@@ -540,7 +552,7 @@ class App:
                 b.state(["disabled"])        # already there
             self.mode_buttons.append(b)
         if current is not None and current < len(names):
-            self.meas["mode"].config(text=names[current] or "—")
+            self.meas["mode"].config(text=names[current] or "-")
 
     # Send a command that restarts the device: the reply is cut short by the USB
     # drop, so log our own note, suppress the I/O error, and reconnect once it
@@ -578,11 +590,38 @@ class App:
         g = self._group(parent, "Capture framing  (moves the sampling window)")
         for attr, cmd, label, lo, hi, default in CAPTURE_KNOBS:
             self._knob_row(g, attr, cmd, label, lo, hi, default)
+
+        # dotclock is a FLOAT in MHz
+        row = ttk.Frame(g)
+        row.pack(fill="x", pady=1)
+        ttk.Label(row, text="Dot clock  (MHz)", width=24).pack(side="left")
+        self.dot_spin = ttk.Spinbox(row, width=8, from_=1.0, to=100.0,
+                                    increment=0.001, format="%.3f")
+        self.dot_spin.set("%.3f" % DOTCLOCK_DEFAULT)
+        self.dot_spin.pack(side="left", padx=2)
+        self._autowire(self.dot_spin, self._send_dotclock)
+        ttk.Button(row, text="Set", width=5,
+                   command=self._send_dotclock).pack(side="left", padx=4)
+
         ttk.Label(g, wraplength=380, foreground="#888",
                   text="bp finds the active picture (whole source pixels). "
                        "phase is the sampling instant inside one pixel, in sysclk "
-                       "(1/16 px): nudge it until edge shimmer nulls."
+                       "(1/16 px): nudge it until edge shimmer nulls. dotclock "
+                       "trims the assumed source clock. "
+                       "Arrows step 1 kHz; saved with the profile."
                   ).pack(anchor="w", pady=(4, 0))
+
+    def _send_dotclock(self):
+        try:
+            mhz = float(self.dot_spin.get())
+        except (ValueError, tk.TclError):
+            return
+        self.worker.send("dotclock %.3f" % mhz, on_done=self._on_dotclock)
+
+    def _on_dotclock(self, ok, text):
+        mhz = parse_dotclock(text)
+        if mhz is not None:
+            self._set_widget(self.dot_spin, "%.3f" % mhz)
 
     # ---- display framing: vertical scale + h/v position ----
     def _build_display(self, parent):
@@ -719,6 +758,7 @@ class App:
         for attr, cmd, _label, _lo, _hi, _d in CAPTURE_KNOBS + DISPLAY_KNOBS:
             self.worker.send(cmd, quiet=True,
                              on_done=lambda ok, t, a=attr, c=cmd: self._on_knob(a, c, t))
+        self.worker.send("dotclock", on_done=self._on_dotclock, quiet=True)
         self.worker.send("mdalevels", on_done=self._on_levels, quiet=True)
         self.worker.send("mode", on_done=self._on_modes, quiet=True)
 
@@ -771,6 +811,8 @@ class App:
             for attr, cmd, _l, _lo, _hi, _d in CAPTURE_KNOBS + DISPLAY_KNOBS:
                 if parse_kv(text, cmd) is not None:
                     self._on_knob(attr, cmd, text)
+            if "dotclock" in text:
+                self._on_dotclock(ok, text)
             if "normal=" in text:
                 self._on_levels(ok, text)
             if "current" in text:

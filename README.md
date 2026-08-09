@@ -249,6 +249,12 @@ docker exec -it pico-sdk sh -c \
 `TTL_BOARD` selects the hardware profile (`pizero` | `pico2_dvi`) and is the
 single source of truth for the board. The output is `build/apps/ttl2dvi/ttl2dvi.uf2`.
 
+
+Then just upload the .uf2 file to rp2350 (in BOOTSEL mode). For example:
+```sh
+cp build/apps/ttl2dvi/ttl2dvi.uf2 /Volumes/RP2350
+```
+
 ## Hardware
 
 Tested on a [Waveshare RP2350-PiZero](https://www.waveshare.com/wiki/RP2350-PiZero) (RP2350B, 48 GPIO, 520 KB SRAM).
