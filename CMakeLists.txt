@@ -21,9 +21,6 @@ pico_sdk_init()
 # can link the `libdvi` target; apps must NOT re-add it.
 add_subdirectory(extern/dvi/libdvi)
 
-# src/ builds the shared module library (capture, video, console, config);
-# apps/ are thin executables that link it. Enable each once its CMakeLists
-# exists (kept commented so `cmake ..` stays valid while the tree fills in).
-# add_subdirectory(src)
+add_subdirectory(src)
 add_subdirectory(apps/dvi_test)     # standalone DVI test card (links libdvi only)
-# add_subdirectory(apps/ttl2dvi)    # full capture -> DVI pipeline
+add_subdirectory(apps/ttl2dvi)    # full capture -> DVI pipeline

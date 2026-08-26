@@ -1,0 +1,28 @@
+; 2bpp sampler: VIDEO (in_base=GP20) + INTENSITY (GP21).
+; One SM. CPU is not in the per-line path.
+;
+; Two pulls ONCE at start:
+;   1. samples_per_line - 1  -> Y   (per-line reload)
+;   2. delay                 -> OSR (stays there; copy to X each line)
+;
+; Sample loop is runtime-patched (bit count + delay)
+
+.program capture
+    pull block              ; pull samples_per_line - 1 from FIFO
+    mov y, osr
+    pull block              ; pull delay from FIFO
+
+.wrap_target
+    wait 0 gpio 27
+    wait 1 gpio 27          ; wait for HSYNC rising edge
+
+    mov x, osr
+delay:
+    jmp x-- delay           ; burn delay+1 SM cycles (delay=0 -> 1 cycle)
+
+    mov x, y                ; x = samples_per_line - 1
+public sample:
+    in pins, 2              ; Patched at runtime (default 2 -> video + intensity)
+                            ; autopush (@32 by default) to RX FIFO
+    jmp x-- sample          ; Patched at runtime (default: no extra delay)
+.wrap

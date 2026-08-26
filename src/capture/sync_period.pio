@@ -1,0 +1,35 @@
+; Measure sync period in sysclk cycles (pulse + gap)
+
+; Pin agnostic (can be used for vsync and scync - two SMs)
+; Eash SM points to at its own pin (HSYNC/VSYNC)
+
+; Polarity: Period = pulse + gap (polarity is irrelevant)
+; Report: PIO reports the counter remainder
+; cycles = (preload - reminder) * 2
+
+.program sync_period
+
+.wrap_target
+    pull block              ;  CPU requests a measurement (copy TX FIFO into OSR and stall if empty)               
+    mov x, osr
+
+    wait 0 pin 0
+    wait 1 pin 0            ; rising edge
+
+pulse:                      ; count while HIGH (puls width)
+    jmp x-- pulse_next      ; if X != 0, decrement and jump; else, jump next instruction (pulse_next)
+pulse_next:                 ; One decrement every two sysclk -> cycles = (preload − remainder) × 2
+    jmp pin, pulse          ; still high? keep counting (2 cycles/iter)
+
+    mov isr, x
+    push block              ; push report 1 (pulse width)
+
+    mov x, osr              ; reload the preload
+
+gap:                        ; count while LOW (period)
+    jmp pin, gap_done       ; pin went HIGH -> next period started
+    jmp x-- gap             ; still low -> keep counting (2 cycles/iter)
+gap_done:
+    mov isr, x
+    push block              ; push report 2 (gap count)
+.wrap
