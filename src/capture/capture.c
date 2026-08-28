@@ -9,8 +9,8 @@
 
 #define PIO_CLKDIV        8.0f
 #define SAMPLE_CYC        16u   // sysclk per sample: 2 SM cycles × clkdiv 8
-#define SAMPLES_PER_WORD  16u   // 2bpp, autopush @32
 #define BP_PX             16u   // extra pixels after the measured HSYNC pulse
+#define BP_MAX            255u
 
 _Static_assert(PIN_HSYNC == 27, "capture.pio wait gpio 27");
 
@@ -25,7 +25,12 @@ static uint32_t rawbuf[RAW_WORDS];
 uint capture_width(void)  { return g_samples_per_line; }
 uint capture_height(void) { return g_lines; }
 
-void capture_set_bp(int bp) { g_bp = bp; }
+void capture_set_bp(int bp)
+{
+    if (bp < 0)           bp = 0;
+    if (bp > (int)BP_MAX) bp = BP_MAX;
+    g_bp = (uint)bp;
+}
 
 int capture_get_bp(void) { return g_bp; }
 
@@ -67,14 +72,21 @@ static bool fit_sampling(void)
     uint32_t line = sync_hsync(&pulse);
     if (!line) return false;
 
+    // 3 pixels of instruction overhead, plus one SM cycle (8 sysclk) for the re-arm
+    uint32_t relock = 3u * SAMPLE_CYC + 8u;
+
+    // The delay must fit inside the line, or the sampler runs past the next HSYNC.
+    if (line <= relock + SAMPLE_CYC * SAMPLES_PER_WORD) return false;
+    uint32_t max_px = (line - relock) / SAMPLE_CYC - SAMPLES_PER_WORD;
+
     // Whole pixels after the pulse. Remainder pulse%SAMPLE_CYC is phase
     uint32_t delay_px  = pulse / SAMPLE_CYC + g_bp;
+    if (delay_px > max_px) return false;
     uint32_t delay_cyc = delay_px * SAMPLE_CYC;
     g_delay = delay_px * 2u;                          // SM cycles; even = whole px
 
-    uint32_t relock  = 3u * SAMPLE_CYC + 8u;
     uint32_t need    = delay_cyc + relock;
-    uint32_t avail   = (line > need) ? line - need : SAMPLE_CYC;
+    uint32_t avail   = (line > need) ? line - need : SAMPLE_CYC;   // what's left over for sampling
     uint32_t samples = avail / SAMPLE_CYC;
     samples -= samples % SAMPLES_PER_WORD;
 
@@ -88,6 +100,7 @@ static bool fit_sampling(void)
 
 bool capture_grab(void)
 {
+    g_lines = 0;
     if (!fit_sampling()) return false;
 
     pio_sm_set_enabled(pio, sm, false);
@@ -109,9 +122,9 @@ bool capture_grab(void)
     bool ok = wait_vsync(true) && wait_vsync(false);
 
     pio_sm_set_enabled(pio, sm, false);
+    dma_channel_abort(dma_chan);                      // FIFO can still drain
     uint32_t written = (dma_channel_hw_addr(dma_chan)->write_addr
                         - (uintptr_t)rawbuf) / 4;
-    dma_channel_abort(dma_chan);
     if (!ok) return false;
 
     g_lines = written / g_words_per_line;
