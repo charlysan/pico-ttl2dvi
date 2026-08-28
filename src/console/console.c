@@ -7,7 +7,7 @@
 #include "sync.h"
 #include "hardware/clocks.h"
 #include "capture.h"
-// #include "config.h"
+#include "video.h"
 
 #define MAX_CMDS 32
 #define LINE_MAX CONSOLE_LINE_MAX
@@ -146,4 +146,9 @@ void cmd_bp(int argc, char **argv) {
 void cmd_phase(int argc, char **argv) {
     if (argc >= 2) capture_set_phase(atoi(argv[1]));
     printf("phase = %d (half px)\n", capture_get_phase());
+}
+
+void cmd_test(int argc, char **argv) {
+    (void)argc; (void)argv;
+    video_test_pattern_stripes();
 }
