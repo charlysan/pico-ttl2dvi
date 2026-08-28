@@ -7,6 +7,7 @@
 
 #define CAPTURE_MAX_WIDTH 864
 #define CAPTURE_MAX_LINES 400
+#define SAMPLE_CYC        16u   // sysclk per sample: 2 SM cycles × clkdiv 8
 #define SAMPLES_PER_WORD  16u   // 2bpp: 32-bit autopush / 2 bits
 #define RAW_WORDS  ((CAPTURE_MAX_WIDTH / SAMPLES_PER_WORD) * CAPTURE_MAX_LINES)
 
@@ -15,6 +16,8 @@ void capture_init(void);
 bool capture_grab(void); // true = got a frame, false = no sync
 void capture_set_bp(int bp);
 int  capture_get_bp(void);
+void capture_set_phase(int phase);
+int  capture_get_phase(void);
 uint capture_width(void);
 uint capture_height(void);
 void capture_dump_frame(void);

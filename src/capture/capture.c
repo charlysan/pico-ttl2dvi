@@ -8,9 +8,9 @@
 #include "capture.h"
 
 #define PIO_CLKDIV        8.0f
-#define SAMPLE_CYC        16u   // sysclk per sample: 2 SM cycles × clkdiv 8
 #define BP_PX             16u   // extra pixels after the measured HSYNC pulse
 #define BP_MAX            255u
+#define PHASE_MAX         1u    // 1 SM cycle = 8 sysclk = half a pixel
 
 _Static_assert(PIN_HSYNC == 27, "capture.pio wait gpio 27");
 
@@ -19,6 +19,7 @@ static PIO pio = pio0;
 static uint sm, prog_off;
 static uint g_lines, g_samples_per_line, g_words_per_line, g_delay;
 static uint g_bp = BP_PX;
+static uint g_phase;
 static int dma_chan;
 static uint32_t rawbuf[RAW_WORDS];
 
@@ -33,6 +34,15 @@ void capture_set_bp(int bp)
 }
 
 int capture_get_bp(void) { return g_bp; }
+
+void capture_set_phase(int phase)
+{
+    if (phase < 0)              phase = 0;
+    if (phase > (int)PHASE_MAX) phase = PHASE_MAX;
+    g_phase = (uint)phase;
+}
+
+int capture_get_phase(void) { return g_phase; }
 
 void capture_init(void)
 {
@@ -83,7 +93,7 @@ static bool fit_sampling(void)
     uint32_t delay_px  = pulse / SAMPLE_CYC + g_bp;
     if (delay_px > max_px) return false;
     uint32_t delay_cyc = delay_px * SAMPLE_CYC;
-    g_delay = delay_px * 2u;                          // SM cycles; even = whole px
+    g_delay = delay_px * 2u + g_phase;                // SM cycles; +1 = half a px
 
     uint32_t need    = delay_cyc + relock;
     uint32_t avail   = (line > need) ? line - need : SAMPLE_CYC;   // what's left over for sampling

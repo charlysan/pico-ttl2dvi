@@ -96,7 +96,8 @@ void cmd_version(int argc, char **argv) {
 void cmd_status(int argc, char **argv) {
     (void)argc; (void)argv;
     uint32_t f = clock_get_hz(clk_sys);
-    uint32_t ph = sync_hsync_period();
+    uint32_t pulse;
+    uint32_t ph = sync_hsync(&pulse);
     uint32_t pv = sync_vsync_period();
 
     printf("  SYSCLK: %lu.%03lu MHz\n",
@@ -106,6 +107,10 @@ void cmd_status(int argc, char **argv) {
         uint32_t h = (uint32_t)((uint64_t)f * 100 / ph);
         printf("  HSYNC: %lu.%02lu Hz\n",
                (unsigned long)(h / 100), (unsigned long)(h % 100));
+        printf("  PULSE: %lu cyc = %lu px + %lu/%u\n",
+               (unsigned long)pulse,
+               (unsigned long)(pulse / SAMPLE_CYC),
+               (unsigned long)(pulse % SAMPLE_CYC), (unsigned)SAMPLE_CYC);
     } else {
         printf("  HSYNC --\n");
     }
@@ -136,4 +141,9 @@ void cmd_capture(int argc, char **argv) {
 void cmd_bp(int argc, char **argv) {
     if (argc >= 2) capture_set_bp(atoi(argv[1]));
     printf("bp = %d px\n", capture_get_bp());
+}
+
+void cmd_phase(int argc, char **argv) {
+    if (argc >= 2) capture_set_phase(atoi(argv[1]));
+    printf("phase = %d (half px)\n", capture_get_phase());
 }

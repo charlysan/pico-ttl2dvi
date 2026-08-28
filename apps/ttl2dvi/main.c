@@ -25,6 +25,7 @@ int main(void) {
     console_register("status", cmd_status, "system status");
     console_register("capture", cmd_capture, "capture a frames");
     console_register("bp", cmd_bp, "back porch");
+    console_register("phase", cmd_phase, "sampling phase 0|1 (half px)");
 
     while (true) {
         console_poll();
