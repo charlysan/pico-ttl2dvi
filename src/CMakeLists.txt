@@ -18,4 +18,5 @@ target_include_directories(ttl2dvi_core PUBLIC
 target_link_libraries(ttl2dvi_core PUBLIC
     pico_stdlib
     libdvi
+    hardware_dma
 )

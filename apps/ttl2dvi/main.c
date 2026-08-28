@@ -23,6 +23,8 @@ int main(void) {
     // Register console commands
     console_register("version", cmd_version, "firmware version");
     console_register("status", cmd_status, "system status");
+    console_register("capture", cmd_capture, "capture a frames");
+    console_register("bp", cmd_bp, "back porch");
 
     while (true) {
         console_poll();
