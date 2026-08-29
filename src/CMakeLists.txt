@@ -3,6 +3,7 @@ add_library(ttl2dvi_core STATIC
     capture/sync.c
     capture/capture.c
     video/video.c
+    view/view.c
 )
 
 # PIO headers: sync-period countdown (HSYNC/VSYNC measure) + the 2bpp sampler.
@@ -14,6 +15,7 @@ target_include_directories(ttl2dvi_core PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/config
     ${CMAKE_CURRENT_LIST_DIR}/capture
     ${CMAKE_CURRENT_LIST_DIR}/video
+    ${CMAKE_CURRENT_LIST_DIR}/view
     ${CMAKE_SOURCE_DIR}/extern/dvi     # common_dvi_pin_configs.h (via board.h)
 )
 

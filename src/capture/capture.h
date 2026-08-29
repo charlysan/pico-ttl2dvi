@@ -20,5 +20,6 @@ void capture_set_phase(int phase);
 int  capture_get_phase(void);
 uint capture_width(void);
 uint capture_height(void);
+void capture_get_line(uint line, uint8_t *dst);  // unpack one line to 0..3 bytes
 void capture_dump_frame(void);
 #endif

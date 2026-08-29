@@ -6,6 +6,7 @@
 #include "version.h"
 #include "console.h"
 #include "video.h"
+#include "view.h"
 
 #define DVI_CLK_KHZ  256000
 
@@ -31,6 +32,7 @@ int main(void) {
     console_register("dvi_test", cmd_test, "run dvi test pattern");
 
     while (true) {
+        if (capture_grab()) view_render();
         console_poll();
     }
 

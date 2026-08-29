@@ -143,6 +143,14 @@ bool capture_grab(void)
     return true;
 }
 
+void capture_get_line(uint line, uint8_t *dst)
+{
+    const uint32_t *src = &rawbuf[line * g_words_per_line];
+    for (uint s = 0; s < g_samples_per_line; s++)
+        dst[s] = (uint8_t)((src[s / SAMPLES_PER_WORD]
+                            >> ((s % SAMPLES_PER_WORD) * 2)) & 3);
+}
+
 void capture_dump_frame(void)
 {
     if (!capture_grab()) {
@@ -152,13 +160,12 @@ void capture_dump_frame(void)
 
     printf("@@@BEGIN\n");
     printf("W %u H %u BPP %u\n", g_samples_per_line, g_lines, 2);
-    static char row[CAPTURE_MAX_WIDTH + 1];
+    static uint8_t vals[CAPTURE_MAX_WIDTH];
+    static char    row[CAPTURE_MAX_WIDTH + 1];
     for (uint line = 0; line < g_lines; line++) {
-        for (uint s = 0; s < g_samples_per_line; s++) {
-            uint32_t word = rawbuf[line * g_words_per_line + (s / SAMPLES_PER_WORD)];
-            uint v = (word >> ((s % SAMPLES_PER_WORD) * 2)) & 3;
-            row[s] = (char)('0' + v);
-        }
+        capture_get_line(line, vals);
+        for (uint s = 0; s < g_samples_per_line; s++)
+            row[s] = (char)('0' + vals[s]);
         row[g_samples_per_line] = '\0';
         puts(row);
     }
