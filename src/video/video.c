@@ -10,7 +10,28 @@
 #include "board.h"
 #include "video.h"
 
+#if VIDEO_MODE_576P
+// CEA-861 576p vertical timing exactly; horizontal blanking squeezed 144 -> 100
+// so the 25.6 MHz pixel clock still lands on 625 lines at ~50 Hz.
+static const struct dvi_timing dvi_timing_720x576p_50hz = {
+    .h_sync_polarity = false,
+    .h_front_porch   = 12,
+    .h_sync_width    = 64,
+    .h_back_porch    = 24,
+    .h_active_pixels = 720,
+
+    .v_sync_polarity = false,
+    .v_front_porch   = 5,
+    .v_sync_width    = 5,
+    .v_back_porch    = 39,
+    .v_active_lines  = 576,
+
+    .bit_clk_khz     = 256000
+};
+#define DVI_TIMING  dvi_timing_720x576p_50hz
+#else
 #define DVI_TIMING  dvi_timing_640x480p_60hz
+#endif
 
 static struct dvi_inst dvi0;
 static uint32_t framebuf[VIDEO_FB_WORDS * VIDEO_FB_H];
