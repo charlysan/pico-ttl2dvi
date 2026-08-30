@@ -18,11 +18,10 @@
 
     mov x, osr
 delay:
-    jmp x-- delay           ; burn delay+1 SM cycles (delay=0 -> 1 cycle)
+    jmp x-- delay           ; burn delay+1 SM cycles = delay+1 sysclk at clkdiv 1
 
     mov x, y                ; x = samples_per_line - 1
 public sample:
-    in pins, 2              ; Patched at runtime (default 2 -> video + intensity)
-                            ; autopush (@32 by default) to RX FIFO
-    jmp x-- sample          ; Patched at runtime (default: no extra delay)
+    in pins, 2      [7]     ; video + intensity; autopush @32 to RX FIFO
+    jmp x-- sample  [7]     ; 2 instr x 8 cycles = 16 sysclk per sample
 .wrap

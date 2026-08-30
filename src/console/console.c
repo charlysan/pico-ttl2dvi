@@ -145,7 +145,7 @@ void cmd_bp(int argc, char **argv) {
 
 void cmd_phase(int argc, char **argv) {
     if (argc >= 2) capture_set_phase(atoi(argv[1]));
-    printf("phase = %d (half px)\n", capture_get_phase());
+    printf("phase = %d/%u px\n", capture_get_phase(), SAMPLE_CYC);
 }
 
 void cmd_test(int argc, char **argv) {

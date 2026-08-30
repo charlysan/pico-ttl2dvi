@@ -7,10 +7,10 @@
 #include "sync.h"
 #include "capture.h"
 
-#define PIO_CLKDIV        8.0f
+#define PIO_CLKDIV        1.0f
 #define BP_PX             16u   // extra pixels after the measured HSYNC pulse
 #define BP_MAX            255u
-#define PHASE_MAX         1u    // 1 SM cycle = 8 sysclk = half a pixel
+#define PHASE_MAX         (SAMPLE_CYC - 1u)   // 1 SM cycle = 1 sysclk = 1/16 px
 
 _Static_assert(PIN_HSYNC == 27, "capture.pio wait gpio 27");
 
@@ -84,7 +84,6 @@ static bool fit_sampling(void)
     uint32_t line = sync_hsync(&pulse);
     if (!line) return false;
 
-    // 3 pixels of instruction overhead, plus one SM cycle (8 sysclk) for the re-arm
     uint32_t relock = 3u * SAMPLE_CYC + 8u;
 
     // The delay must fit inside the line, or the sampler runs past the next HSYNC.
@@ -95,7 +94,7 @@ static bool fit_sampling(void)
     uint32_t delay_px  = pulse / SAMPLE_CYC + g_bp;
     if (delay_px > max_px) return false;
     uint32_t delay_cyc = delay_px * SAMPLE_CYC;
-    g_delay = delay_px * 2u + g_phase;                // SM cycles; +1 = half a px
+    g_delay = delay_px * SAMPLE_CYC + g_phase;        // sysclk
 
     uint32_t need    = delay_cyc + relock;
     uint32_t avail   = (line > need) ? line - need : SAMPLE_CYC;   // what's left over for sampling
