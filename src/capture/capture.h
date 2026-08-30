@@ -21,5 +21,7 @@ int  capture_get_phase(void);
 uint capture_width(void);
 uint capture_height(void);
 void capture_get_line(uint line, uint8_t *dst);  // unpack one line to 0..3 bytes
+const uint8_t *capture_raw_line(uint line);      // packed samples, 4 px per byte
+void capture_hold(void);                         // stop the sampler; next grab re-syncs
 void capture_dump_frame(void);
 #endif

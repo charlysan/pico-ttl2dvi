@@ -18,6 +18,8 @@ _Static_assert(PIN_HSYNC == 27, "capture.pio wait gpio 27");
 static PIO pio = pio0;
 static uint sm, prog_off;
 static uint g_lines, g_samples_per_line, g_words_per_line, g_delay;
+static uint g_lines_prev;
+static bool g_armed;
 static uint g_bp = BP_PX;
 static uint g_phase;
 static int dma_chan;
@@ -108,11 +110,8 @@ static bool fit_sampling(void)
     return true;
 }
 
-bool capture_grab(void)
+static void arm(void)
 {
-    g_lines = 0;
-    if (!fit_sampling()) return false;
-
     pio_sm_set_enabled(pio, sm, false);
     pio_sm_clear_fifos(pio, sm);
     pio_sm_restart(pio, sm);
@@ -121,13 +120,40 @@ bool capture_grab(void)
 
     dma_channel_set_write_addr(dma_chan, rawbuf, false);
     dma_channel_set_trans_count(dma_chan, RAW_WORDS, false);
-
-    if (!wait_vsync(true) || !wait_vsync(false)) return false;
-
     dma_channel_start(dma_chan);
     pio_sm_put_blocking(pio, sm, g_samples_per_line - 1);
     pio_sm_put_blocking(pio, sm, g_delay);
     pio_sm_set_enabled(pio, sm, true);
+}
+
+void capture_hold(void)
+{
+    pio_sm_set_enabled(pio, sm, false);
+    dma_channel_abort(dma_chan);
+    g_armed = false;
+}
+
+const uint8_t *capture_raw_line(uint line)
+{
+    return (const uint8_t *)&rawbuf[line * g_words_per_line];
+}
+
+bool capture_grab(void)
+{
+    g_lines = 0;
+
+    // An armed capture goes stale if the caller was away longer than a frame.
+    if (g_armed) {
+        uint32_t w = (dma_channel_hw_addr(dma_chan)->write_addr
+                      - (uintptr_t)rawbuf) / 4;
+        if (w >= g_lines_prev * g_words_per_line) capture_hold();
+    }
+    if (!g_armed) {
+        if (!fit_sampling()) return false;
+        if (!wait_vsync(true) || !wait_vsync(false)) return false;
+        arm();
+    }
+    g_armed = false;
 
     bool ok = wait_vsync(true) && wait_vsync(false);
 
@@ -140,6 +166,11 @@ bool capture_grab(void)
     g_lines = written / g_words_per_line;
     uint max_lines = RAW_WORDS / g_words_per_line;
     if (g_lines > max_lines) g_lines = max_lines;
+    g_lines_prev = g_lines;
+
+    // Re-arm on the edge we are standing on. 
+    // Do not wait for the next high->low pair
+    if (fit_sampling()) { arm(); g_armed = true; }
     return true;
 }
 
@@ -157,6 +188,7 @@ void capture_dump_frame(void)
         printf("capture: no sync signal\n");
         return;
     }
+    capture_hold();
 
     printf("@@@BEGIN\n");
     printf("W %u H %u BPP %u\n", g_samples_per_line, g_lines, 2);
