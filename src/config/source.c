@@ -7,6 +7,7 @@ static const source_mode_t src_mda16 = {
     .id         = SRC_ID_MDA16,
     .name       = "MDA16",
     .sysclk_khz = 256000,
+    .active_w   = 720,
 };
 
 static const source_mode_t *const sources[] = {

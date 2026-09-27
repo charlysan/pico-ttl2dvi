@@ -10,6 +10,7 @@ typedef struct {
     uint8_t     id;
     const char *name;
     uint        sysclk_khz;
+    uint        active_w;    // visible pixels per line
 } source_mode_t;
 
 // Call first in main(): resolves the active source before the overclock.

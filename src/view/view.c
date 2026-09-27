@@ -3,6 +3,7 @@
 #include "capture.h"
 #include "video.h"
 #include "view.h"
+#include "source.h"
 
 // Sample (VIDEO | INTENSITY<<1) -> grey index. 2 is INTENSITY without VIDEO,
 // which the card does not emit.
@@ -57,8 +58,10 @@ void __not_in_flash_func(view_render)(void)
     const uint fb_words = video_fb_words();
     const int  vs       = (int)g_vscale;
 
+    // Centred on the card's active width, not the measured one: that one
+    // includes blanking and moves with bp.
     // Negative border = source bigger than the canvas = crop.
-    const int h_border = ((int)fb_w - (int)src_w) / 2 + g_hpos;
+    const int h_border = ((int)fb_w - (int)source_active()->active_w) / 2 + g_hpos;
     const int v_border = ((int)fb_h - (int)src_h * vs) / 2 + g_vpos * vs;
 
     const bool fast = h_border <= 0 && ((-h_border) % 4) == 0
