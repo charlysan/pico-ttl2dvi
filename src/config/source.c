@@ -8,10 +8,29 @@ static const source_mode_t src_mda16 = {
     .name       = "MDA16",
     .sysclk_khz = 256000,
     .active_w   = 720,
+    .data_base  = 20,        // VIDEO, INTENSITY
+    .data_bits  = 2,
+    .sample_cyc = 16,
+    .def_bp     = 16,
+    .def_phase  = 0,
+};
+
+// CGA 640x200, 14.3333 MHz dot clock: 258 MHz = 18 sysclk per pixel.
+static const source_mode_t src_cga640 = {
+    .id         = SRC_ID_CGA640,
+    .name       = "CGA640",
+    .sysclk_khz = 258000,
+    .active_w   = 640,
+    .data_base  = 21,        // I, R, G, B
+    .data_bits  = 4,
+    .sample_cyc = 18,
+    .def_bp     = 112,
+    .def_phase  = 4,
 };
 
 static const source_mode_t *const sources[] = {
     &src_mda16,
+    &src_cga640,
 };
 #define SOURCE_COUNT (sizeof sources / sizeof sources[0])
 

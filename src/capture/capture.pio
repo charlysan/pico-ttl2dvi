@@ -1,4 +1,4 @@
-; 2bpp sampler: VIDEO (in_base=GP20) + INTENSITY (GP21).
+; Sampler: the source's data pins from in_base, one sample per pixel.
 ; One SM. CPU is not in the per-line path.
 ;
 ; Two pulls ONCE at start:
@@ -22,6 +22,6 @@ delay:
 
     mov x, y                ; x = samples_per_line - 1
 public sample:
-    in pins, 2      [7]     ; video + intensity; autopush @32 to RX FIFO
-    jmp x-- sample  [7]     ; 2 instr x 8 cycles = 16 sysclk per sample
+    in pins, 2      [7]     ; patched: in pins, data_bits; autopush @32
+    jmp x-- sample  [7]     ; patched: delays sum to sample_cyc
 .wrap

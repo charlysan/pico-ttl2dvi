@@ -4,9 +4,6 @@
 #include <stdint.h>
 #include "pico/types.h"     // uint
 
-#define VIDEO_FB_BPP    2u
-#define VIDEO_FB_PPW    (32u / VIDEO_FB_BPP)
-
 // After the overclock, before sync_init/capture_init.
 void video_init(void);
 
@@ -16,12 +13,20 @@ uint video_mode_current(void);
 const char *video_mode_name(uint i);
 void video_set_mode(uint i);
 
-// 2bpp, LSB = leftmost pixel, 0..3 = the four fixed greys in tmds_encode_2bpp.
+// LSB = leftmost pixel. Depth is per mode:
+//   2bpp: 0..3 = the four fixed greys in tmds_encode_2bpp (MDA)
+//   8bpp: RGB222, R 5:4, G 3:2, B 1:0 (CGA)
+// Height is framebuffer rows; core1 shows each row on several display lines
+// when the mode repeats rows.
 // core0 writes while core1 reads: no double buffer (for now)
 uint32_t *video_fb(void);
 uint video_fb_width(void);
 uint video_fb_height(void);
 uint video_fb_words(void);
+uint video_fb_bpp(void);
+
+// CGA sample (I | R<<1 | G<<2 | B<<3) -> RGB222 byte, 16 entries.
+const uint8_t *video_cga_rgb222(void);
 
 void video_clear(void);
 void video_test_pattern_stripes(void);

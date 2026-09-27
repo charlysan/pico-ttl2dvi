@@ -28,12 +28,13 @@ void cmd_status(int argc, char **argv) {
            (unsigned long)((f / 1000) % 1000));
     if (ph) {
         uint32_t h = (uint32_t)((uint64_t)f * 100 / ph);
+        uint cyc = capture_sample_cyc();
         printf("  HSYNC: %lu.%02lu Hz\n",
                (unsigned long)(h / 100), (unsigned long)(h % 100));
         printf("  PULSE: %lu cyc = %lu px + %lu/%u\n",
                (unsigned long)pulse,
-               (unsigned long)(pulse / SAMPLE_CYC),
-               (unsigned long)(pulse % SAMPLE_CYC), (unsigned)SAMPLE_CYC);
+               (unsigned long)(pulse / cyc),
+               (unsigned long)(pulse % cyc), cyc);
     } else {
         printf("  HSYNC --\n");
     }
@@ -129,7 +130,7 @@ void cmd_bp(int argc, char **argv) {
 
 void cmd_phase(int argc, char **argv) {
     if (argc >= 2) capture_set_phase(atoi(argv[1]));
-    printf("phase = %d/%u px\n", capture_get_phase(), SAMPLE_CYC);
+    printf("phase = %d/%u px\n", capture_get_phase(), capture_sample_cyc());
 }
 
 void cmd_test(int argc, char **argv) {

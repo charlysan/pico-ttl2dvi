@@ -23,7 +23,7 @@ target_include_directories(ttl2dvi_core PUBLIC
 # libdvi is INTERFACE: it compiles with THIS target's defines, not the app's.
 target_compile_definitions(ttl2dvi_core PUBLIC
     DVI_VERTICAL_REPEAT=1      # default 2 = half-height picture
-    DVI_MONOCHROME_TMDS=1      # all 3 lanes share one buffer; one encode per line
+    DVI_MONOCHROME_TMDS=0      # 3 independent lanes; MDA copies lane 0 to the others
     DVI_DEFAULT_PIO_INST=pio1  # pio0 is capture's; a PIO's GPIO base is global
     PICO_PIO_USE_GPIO_BASE=1   # TMDS pins 32-39 are outside the default window
 )

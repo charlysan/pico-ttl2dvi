@@ -37,7 +37,7 @@ int main(void) {
     console_register("hpos", cmd_hpos, "horizontal position, source px (+ = right)");
     console_register("capture", cmd_capture, "capture a frames");
     console_register("bp", cmd_bp, "back porch");
-    console_register("phase", cmd_phase, "sampling phase 0-15 (1/16 px)");
+    console_register("phase", cmd_phase, "sampling phase, sysclk steps within a pixel");
     console_register("dvi_test", cmd_test, "run dvi test pattern");
 
     while (true) {

@@ -143,6 +143,19 @@ void __not_in_flash_func(tmds_encode_data_channel_8bpp)(const uint32_t *pixbuf, 
 #endif
 }
 
+// [ttl2dvi patch] As above, but full resolution: hdouble=false clears
+// PIX2_NOSHIFT, so one POP_DOUBLE consumes two distinct pixels.
+// n_pix distinct pixels, a multiple of 4, word-aligned.
+void __not_in_flash_func(tmds_encode_data_channel_8bpp_fullres)(const uint32_t *pixbuf, uint32_t *symbuf, size_t n_pix, uint channel_msb, uint channel_lsb) {
+#if DVI_USE_SIO_TMDS_ENCODER && DVI_SYMBOLS_PER_WORD == 2
+	configure_sio_tmds_for_single_channel(channel_msb, channel_lsb, 8, false);
+	tmds_encode_sio_loop_poppop_ratio2(pixbuf, symbuf, n_pix);
+#else
+	(void)pixbuf; (void)symbuf; (void)n_pix; (void)channel_msb; (void)channel_lsb;
+	assert(false);
+#endif
+}
+
 // ----------------------------------------------------------------------------
 // Code for full-resolution TMDS encode (barely possible, utterly impractical):
 

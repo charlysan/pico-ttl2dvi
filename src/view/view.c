@@ -50,6 +50,7 @@ void __not_in_flash_func(view_render)(void)
     const uint src_w = capture_width();
     const uint src_h = capture_height();
     if (!src_w || !src_h) return;
+    if (video_fb_bpp() != 2) return;           // RGB222 view not built yet
     if (!blut_ready) build_blut();
 
     uint32_t  *fb       = video_fb();
@@ -99,10 +100,10 @@ void __not_in_flash_func(view_render)(void)
 
         for (uint w = 0; w < fb_words; w++) {
             uint32_t word = 0;
-            for (uint i = 0; i < VIDEO_FB_PPW; i++) {
-                const int k = (int)(w * VIDEO_FB_PPW + i) - h_border;
+            for (uint i = 0; i < 16; i++) {
+                const int k = (int)(w * 16 + i) - h_border;
                 const uint idx = (k >= 0 && k < (int)src_w) ? level[src_row[k]] : 0;
-                word |= idx << (VIDEO_FB_BPP * i);
+                word |= idx << (2 * i);
             }
             fb_line[w] = word;
         }

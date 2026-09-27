@@ -15,8 +15,7 @@
 #include "common_dvi_pin_configs.h"
 
 // ---- capture pins (shared across boards; both RP2350A/B expose 20-27) ----
-#define PIN_VIDEO 20   // in_base for the 2bpp sampler
-#define PIN_INTEN 21   // INTENSITY = in_base + 1
+// Data pins are per source (source.c), inside GP20-25.
 #define PIN_VSYNC 26
 #define PIN_HSYNC 27
 

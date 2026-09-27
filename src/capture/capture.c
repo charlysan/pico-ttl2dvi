@@ -4,29 +4,31 @@
 #include "hardware/dma.h"
 #include "capture.pio.h"
 #include "board.h"
+#include "source.h"
 #include "sync.h"
 #include "capture.h"
 
 #define PIO_CLKDIV        1.0f
-#define BP_PX             16u   // extra pixels after the measured HSYNC pulse
 #define BP_MAX            255u
-#define PHASE_MAX         (SAMPLE_CYC - 1u)   // 1 SM cycle = 1 sysclk = 1/16 px
+#define RAW_WORDS         30000u   // one frame; lines = RAW_WORDS / words per line
 
 _Static_assert(PIN_HSYNC == 27, "capture.pio wait gpio 27");
 
 // pio0 (base 0): capture pins 20-27. DVI owns pio1.
 static PIO pio = pio0;
 static uint sm, prog_off;
+static uint g_cyc, g_bits, g_spw;         // sysclk/sample, bits/sample, samples/word
 static uint g_lines, g_samples_per_line, g_words_per_line, g_delay;
 static uint g_lines_prev;
 static bool g_armed;
-static uint g_bp = BP_PX;
+static uint g_bp;
 static uint g_phase;
 static int dma_chan;
 static uint32_t rawbuf[RAW_WORDS];
 
-uint capture_width(void)  { return g_samples_per_line; }
-uint capture_height(void) { return g_lines; }
+uint capture_width(void)      { return g_samples_per_line; }
+uint capture_height(void)     { return g_lines; }
+uint capture_sample_cyc(void) { return g_cyc; }
 
 void capture_set_bp(int bp)
 {
@@ -37,26 +39,46 @@ void capture_set_bp(int bp)
 
 int capture_get_bp(void) { return g_bp; }
 
+// 1 SM cycle = 1 sysclk = 1/g_cyc px
 void capture_set_phase(int phase)
 {
-    if (phase < 0)              phase = 0;
-    if (phase > (int)PHASE_MAX) phase = PHASE_MAX;
+    if (phase < 0)                phase = 0;
+    if (phase > (int)g_cyc - 1)   phase = (int)g_cyc - 1;
     g_phase = (uint)phase;
 }
 
 int capture_get_phase(void) { return g_phase; }
 
+// Rewrite the two-instruction sample loop for this source's bit count and
+// sample period, split across both delay slots. instr_mem is write-only.
+static void patch_sample_loop(void)
+{
+    uint at = prog_off + capture_offset_sample;
+    pio->instr_mem[at]     = pio_encode_in(pio_pins, g_bits)
+                           | pio_encode_delay((g_cyc + 1) / 2 - 1);
+    pio->instr_mem[at + 1] = pio_encode_jmp_x_dec(at)
+                           | pio_encode_delay(g_cyc / 2 - 1);
+}
+
 void capture_init(void)
 {
+    const source_mode_t *src = source_active();
+    g_cyc   = src->sample_cyc;
+    g_bits  = src->data_bits;
+    g_spw   = 32u / g_bits;
+    g_bp    = (uint)src->def_bp;
+    g_phase = (uint)src->def_phase;
+
     prog_off = pio_add_program(pio, &capture_program);
+    patch_sample_loop();
     sm = pio_claim_unused_sm(pio, true);
 
-    pio_gpio_init(pio, PIN_VIDEO);
-    pio_gpio_init(pio, PIN_INTEN);
-    pio_sm_set_consecutive_pindirs(pio, sm, PIN_VIDEO, 2, false);
+    for (uint i = 0; i < g_bits; i++)
+        pio_gpio_init(pio, src->data_base + i);
+    pio_sm_set_consecutive_pindirs(pio, sm, src->data_base, g_bits, false);
 
     pio_sm_config c = capture_program_get_default_config(prog_off);
-    sm_config_set_in_pins(&c, PIN_VIDEO);
+    sm_config_set_in_pins(&c, src->data_base);
     sm_config_set_in_shift(&c, true, true, 32);        // right, autopush @32
     sm_config_set_clkdiv(&c, PIO_CLKDIV);
     pio_sm_init(pio, sm, prog_off, &c);               // left disabled
@@ -84,28 +106,28 @@ static bool fit_sampling(void)
     uint32_t line = sync_hsync(&pulse);
     if (!line) return false;
 
-    uint32_t relock = 3u * SAMPLE_CYC + 8u;
+    uint32_t relock = 3u * g_cyc + 8u;
 
     // The delay must fit inside the line, or the sampler runs past the next HSYNC.
-    if (line <= relock + SAMPLE_CYC * SAMPLES_PER_WORD) return false;
-    uint32_t max_px = (line - relock) / SAMPLE_CYC - SAMPLES_PER_WORD;
+    if (line <= relock + g_cyc * g_spw) return false;
+    uint32_t max_px = (line - relock) / g_cyc - g_spw;
 
-    // Whole pixels after the pulse. Remainder pulse%SAMPLE_CYC is phase
-    uint32_t delay_px  = pulse / SAMPLE_CYC + g_bp;
+    // Whole pixels after the pulse. Remainder pulse%g_cyc is phase
+    uint32_t delay_px  = pulse / g_cyc + g_bp;
     if (delay_px > max_px) return false;
-    uint32_t delay_cyc = delay_px * SAMPLE_CYC;
-    g_delay = delay_px * SAMPLE_CYC + g_phase;        // sysclk
+    uint32_t delay_cyc = delay_px * g_cyc;
+    g_delay = delay_cyc + g_phase;                    // sysclk
 
     uint32_t need    = delay_cyc + relock;
-    uint32_t avail   = (line > need) ? line - need : SAMPLE_CYC;   // what's left over for sampling
-    uint32_t samples = avail / SAMPLE_CYC;
-    samples -= samples % SAMPLES_PER_WORD;
+    uint32_t avail   = (line > need) ? line - need : g_cyc;   // what's left over for sampling
+    uint32_t samples = avail / g_cyc;
 
     if (samples > CAPTURE_MAX_WIDTH) samples = CAPTURE_MAX_WIDTH;
-    if (samples < SAMPLES_PER_WORD)  samples = SAMPLES_PER_WORD;
+    samples -= samples % g_spw;
+    if (samples < g_spw)             samples = g_spw;
 
     g_samples_per_line = (uint)samples;
-    g_words_per_line   = (uint)(samples / SAMPLES_PER_WORD);
+    g_words_per_line   = (uint)(samples / g_spw);
     return true;
 }
 
@@ -167,7 +189,7 @@ bool capture_grab(void)
     if (g_lines > max_lines) g_lines = max_lines;
     g_lines_prev = g_lines;
 
-    // Re-arm on the edge we are standing on. 
+    // Re-arm on the edge we are standing on.
     // Do not wait for the next high->low pair
     if (fit_sampling()) { arm(); g_armed = true; }
     return true;
@@ -175,10 +197,10 @@ bool capture_grab(void)
 
 void capture_get_line(uint line, uint8_t *dst)
 {
-    const uint32_t *src = &rawbuf[line * g_words_per_line];
+    const uint32_t *src  = &rawbuf[line * g_words_per_line];
+    const uint32_t  mask = (1u << g_bits) - 1u;
     for (uint s = 0; s < g_samples_per_line; s++)
-        dst[s] = (uint8_t)((src[s / SAMPLES_PER_WORD]
-                            >> ((s % SAMPLES_PER_WORD) * 2)) & 3);
+        dst[s] = (uint8_t)((src[s / g_spw] >> ((s % g_spw) * g_bits)) & mask);
 }
 
 void capture_dump_frame(void)
@@ -190,13 +212,13 @@ void capture_dump_frame(void)
     capture_hold();
 
     printf("@@@BEGIN\n");
-    printf("W %u H %u BPP %u\n", g_samples_per_line, g_lines, 2);
+    printf("W %u H %u BPP %u\n", g_samples_per_line, g_lines, g_bits);
     static uint8_t vals[CAPTURE_MAX_WIDTH];
     static char    row[CAPTURE_MAX_WIDTH + 1];
     for (uint line = 0; line < g_lines; line++) {
         capture_get_line(line, vals);
         for (uint s = 0; s < g_samples_per_line; s++)
-            row[s] = (char)('0' + vals[s]);
+            row[s] = "0123456789abcdef"[vals[s]];
         row[g_samples_per_line] = '\0';
         puts(row);
     }
