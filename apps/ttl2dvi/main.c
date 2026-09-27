@@ -8,14 +8,15 @@
 #include "commands.h"
 #include "video.h"
 #include "view.h"
-
-#define DVI_CLK_KHZ  256000
+#include "source.h"
 
 int main(void) {
+    source_init();
+
     // Overclock
     vreg_set_voltage(VREG_VOLTAGE_1_20);
     sleep_ms(10);
-    set_sys_clock_khz(DVI_CLK_KHZ, true);
+    set_sys_clock_khz(source_active()->sysclk_khz, true);
 
     video_init();
     sync_init();
@@ -28,6 +29,7 @@ int main(void) {
     console_init();
     console_register("version", cmd_version, "firmware version");
     console_register("status", cmd_status, "system status");
+    console_register("source", cmd_source, "list / set video source (reboots)");
     console_register("mode", cmd_mode, "list / set output mode (reboots)");
     console_register("capture", cmd_capture, "capture a frames");
     console_register("bp", cmd_bp, "back porch");

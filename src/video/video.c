@@ -9,6 +9,7 @@
 #include "dvi_serialiser.h"
 #include "tmds_encode.h"
 #include "board.h"
+#include "source.h"
 #include "video.h"
 
 // CEA-861 576p vertical timing exactly; horizontal blanking squeezed 144 -> 100
@@ -34,22 +35,36 @@ typedef struct {
     const struct dvi_timing *timing;
 } video_mode_t;
 
-static const video_mode_t modes[] = {
+// A mode's bit_clk_khz must equal its source's sysclk_khz.
+static const video_mode_t mda16_modes[] = {
     { "640x480@60", &dvi_timing_640x480p_60hz },
     { "720x576@50", &dvi_timing_720x576p_50hz },
 };
-#define MODE_COUNT (sizeof modes / sizeof modes[0])
+
+typedef struct {
+    uint8_t             src_id;
+    const video_mode_t *modes;
+    uint                count;
+    uint                def;
+} mode_set_t;
+
+static const mode_set_t mode_sets[] = {
+    { SRC_ID_MDA16, mda16_modes, sizeof mda16_modes / sizeof mda16_modes[0], 1 },
+};
 
 // scratch[4] is off limits: watchdog_reboot() clears it.
+// Packed as (MAGIC << 16) | (src_id << 8) | index, so an index saved under
+// another source is ignored.
 #define MODE_SCRATCH 3
-#define MODE_MAGIC   0x7712d0u
+#define MODE_MAGIC   0x77d0u
 
 #define FB_W_MAX     720u
 #define FB_H_MAX     576u
 static uint32_t framebuf[FB_W_MAX / VIDEO_FB_PPW * FB_H_MAX];
 
 static struct dvi_inst dvi0;
-static uint g_mode = 1;
+static const mode_set_t *g_set = &mode_sets[0];
+static uint g_mode;
 static uint g_fb_w, g_fb_h, g_fb_words;
 
 uint32_t *video_fb(void)    { return framebuf; }
@@ -57,14 +72,15 @@ uint video_fb_width(void)   { return g_fb_w; }
 uint video_fb_height(void)  { return g_fb_h; }
 uint video_fb_words(void)   { return g_fb_words; }
 
-uint video_mode_count(void)   { return MODE_COUNT; }
+uint video_mode_count(void)   { return g_set->count; }
 uint video_mode_current(void) { return g_mode; }
-const char *video_mode_name(uint i) { return i < MODE_COUNT ? modes[i].name : ""; }
+const char *video_mode_name(uint i) { return i < g_set->count ? g_set->modes[i].name : ""; }
 
 void video_set_mode(uint i)
 {
-    if (i >= MODE_COUNT) return;
-    watchdog_hw->scratch[MODE_SCRATCH] = (MODE_MAGIC << 8) | i;
+    if (i >= g_set->count) return;
+    watchdog_hw->scratch[MODE_SCRATCH] =
+        (MODE_MAGIC << 16) | ((uint32_t)g_set->src_id << 8) | i;
     watchdog_reboot(0, 0, 50);
     while (true) tight_loop_contents();
 }
@@ -113,11 +129,17 @@ static void core1_main(void)
 
 void video_init(void)
 {
+    const uint8_t src_id = source_active()->id;
+    for (uint i = 0; i < sizeof mode_sets / sizeof mode_sets[0]; i++)
+        if (mode_sets[i].src_id == src_id) g_set = &mode_sets[i];
+
+    g_mode = g_set->def;
     uint32_t sel = watchdog_hw->scratch[MODE_SCRATCH];
-    if ((sel >> 8) == MODE_MAGIC && (sel & 0xffu) < MODE_COUNT)
+    if ((sel >> 16) == MODE_MAGIC && ((sel >> 8) & 0xffu) == g_set->src_id
+        && (sel & 0xffu) < g_set->count)
         g_mode = sel & 0xffu;
 
-    const struct dvi_timing *t = modes[g_mode].timing;
+    const struct dvi_timing *t = g_set->modes[g_mode].timing;
     g_fb_w     = t->h_active_pixels;
     g_fb_h     = t->v_active_lines;
     g_fb_words = g_fb_w / VIDEO_FB_PPW;

@@ -7,6 +7,7 @@
 #include "sync.h"
 #include "capture.h"
 #include "video.h"
+#include "source.h"
 
 // --- diagnostics ---
 void cmd_version(int argc, char **argv) {
@@ -42,6 +43,23 @@ void cmd_status(int argc, char **argv) {
     } else {
         printf("  VSYNC --\n");
     }
+}
+
+void cmd_source(int argc, char **argv) {
+    if (argc >= 2) {
+        char *end;
+        long i = strtol(argv[1], &end, 10);
+        if (*end || i < 0 || (uint)i >= source_count()) {
+            printf("no such source: %s\n", argv[1]);
+        } else {
+            printf("switching to %s (reboot)...\n", source_get((uint)i)->name);
+            sleep_ms(50);
+            source_select((uint)i);
+        }
+    }
+    for (uint i = 0; i < source_count(); i++)
+        printf("  %u  %s%s\n", i, source_get(i)->name,
+               i == source_active_index() ? "   <- current" : "");
 }
 
 void cmd_mode(int argc, char **argv) {

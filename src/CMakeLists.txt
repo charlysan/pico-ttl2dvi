@@ -1,5 +1,6 @@
 add_library(ttl2dvi_core STATIC
     console/console.c
+    config/source.c
     capture/sync.c
     capture/capture.c
     video/video.c

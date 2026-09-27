@@ -6,6 +6,7 @@ void cmd_version(int argc, char **argv);
 void cmd_status(int argc, char **argv);
 
 // --- video ---
+void cmd_source(int argc, char **argv);
 void cmd_mode(int argc, char **argv);
 
 // --- capture ---
