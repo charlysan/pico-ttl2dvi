@@ -6,7 +6,7 @@
 
 // Sample (VIDEO | INTENSITY<<1) -> grey index. 2 is INTENSITY without VIDEO,
 // which the card does not emit.
-static const uint8_t level[4] = { 0, 2, 0, 3 };
+static uint8_t level[4] = { 0, 2, 0, 3 };
 
 // 2bpp both sides and one sample per pixel, so a source byte is 4 pixels is a
 // framebuffer byte.
@@ -23,6 +23,16 @@ static void build_blut(void)
     }
     blut_ready = true;
 }
+
+void view_set_mda_levels(uint normal, uint bright)
+{
+    level[1] = (uint8_t)(normal & 3u);
+    level[3] = (uint8_t)(bright & 3u);
+    blut_ready = false;
+}
+
+uint view_get_mda_normal(void) { return level[1]; }
+uint view_get_mda_bright(void) { return level[3]; }
 
 void __not_in_flash_func(view_render)(void)
 {

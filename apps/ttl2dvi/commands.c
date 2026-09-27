@@ -8,6 +8,7 @@
 #include "capture.h"
 #include "video.h"
 #include "source.h"
+#include "view.h"
 
 // --- diagnostics ---
 void cmd_version(int argc, char **argv) {
@@ -77,6 +78,18 @@ void cmd_mode(int argc, char **argv) {
     for (uint i = 0; i < video_mode_count(); i++)
         printf("  %u  %s%s\n", i, video_mode_name(i),
                i == video_mode_current() ? "   <- current" : "");
+}
+
+void cmd_mdalevels(int argc, char **argv) {
+    uint normal = view_get_mda_normal();
+    uint bright = view_get_mda_bright();
+    if (argc >= 2) normal = (uint)atoi(argv[1]);
+    if (argc >= 3) bright = (uint)atoi(argv[2]);
+    if (normal > 3 || bright > 3)
+        printf("levels are 0..3\n");
+    else
+        view_set_mda_levels(normal, bright);
+    printf("mdalevels normal=%u bright=%u\n", view_get_mda_normal(), view_get_mda_bright());
 }
 
 void cmd_capture_stat(int argc, char **argv) {
