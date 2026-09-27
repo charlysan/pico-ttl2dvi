@@ -92,6 +92,21 @@ void cmd_mdalevels(int argc, char **argv) {
     printf("mdalevels normal=%u bright=%u\n", view_get_mda_normal(), view_get_mda_bright());
 }
 
+void cmd_vscale(int argc, char **argv) {
+    if (argc >= 2) view_set_vscale(atoi(argv[1]));
+    printf("vscale = %ux\n", view_get_vscale());
+}
+
+void cmd_vpos(int argc, char **argv) {
+    if (argc >= 2) view_set_vpos(atoi(argv[1]));
+    printf("vpos = %d source lines\n", view_get_vpos());
+}
+
+void cmd_hpos(int argc, char **argv) {
+    if (argc >= 2) view_set_hpos(atoi(argv[1]));
+    printf("hpos = %d source px\n", view_get_hpos());
+}
+
 void cmd_capture_stat(int argc, char **argv) {
     (void)argc; (void)argv;
     if (!capture_grab()) {

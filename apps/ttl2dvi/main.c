@@ -32,6 +32,9 @@ int main(void) {
     console_register("source", cmd_source, "list / set video source (reboots)");
     console_register("mode", cmd_mode, "list / set output mode (reboots)");
     console_register("mdalevels", cmd_mdalevels, "MDA grey levels: mdalevels [normal [bright]] (0..3)");
+    console_register("vscale", cmd_vscale, "vertical scale 1..4");
+    console_register("vpos", cmd_vpos, "vertical position, source lines (+ = down)");
+    console_register("hpos", cmd_hpos, "horizontal position, source px (+ = right)");
     console_register("capture", cmd_capture, "capture a frames");
     console_register("bp", cmd_bp, "back porch");
     console_register("phase", cmd_phase, "sampling phase 0-15 (1/16 px)");

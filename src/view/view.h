@@ -12,4 +12,14 @@ void view_set_mda_levels(uint normal, uint bright);
 uint view_get_mda_normal(void);
 uint view_get_mda_bright(void);
 
+// Display-side framing, applies next frame. vscale 1..4 draws each source line
+// N times; vpos (source lines, + = down) and hpos (source px, + = right) move
+// the already captured image.
+void view_set_vscale(int n);
+uint view_get_vscale(void);
+void view_set_vpos(int n);
+int  view_get_vpos(void);
+void view_set_hpos(int n);
+int  view_get_hpos(void);
+
 #endif
