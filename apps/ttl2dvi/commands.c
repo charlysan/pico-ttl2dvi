@@ -44,6 +44,23 @@ void cmd_status(int argc, char **argv) {
     }
 }
 
+void cmd_mode(int argc, char **argv) {
+    if (argc >= 2) {
+        char *end;
+        long i = strtol(argv[1], &end, 10);
+        if (*end || i < 0 || (uint)i >= video_mode_count()) {
+            printf("no such mode: %s\n", argv[1]);
+        } else {
+            printf("switching to %s (reboot)...\n", video_mode_name((uint)i));
+            sleep_ms(50);
+            video_set_mode((uint)i);
+        }
+    }
+    for (uint i = 0; i < video_mode_count(); i++)
+        printf("  %u  %s%s\n", i, video_mode_name(i),
+               i == video_mode_current() ? "   <- current" : "");
+}
+
 void cmd_capture_stat(int argc, char **argv) {
     (void)argc; (void)argv;
     if (!capture_grab()) {

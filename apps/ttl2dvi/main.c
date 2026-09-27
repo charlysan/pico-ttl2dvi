@@ -28,6 +28,7 @@ int main(void) {
     console_init();
     console_register("version", cmd_version, "firmware version");
     console_register("status", cmd_status, "system status");
+    console_register("mode", cmd_mode, "list / set output mode (reboots)");
     console_register("capture", cmd_capture, "capture a frames");
     console_register("bp", cmd_bp, "back porch");
     console_register("phase", cmd_phase, "sampling phase 0-15 (1/16 px)");

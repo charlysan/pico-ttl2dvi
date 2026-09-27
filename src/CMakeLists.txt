@@ -32,4 +32,5 @@ target_link_libraries(ttl2dvi_core PUBLIC
     pico_multicore
     libdvi
     hardware_dma
+    hardware_watchdog
 )

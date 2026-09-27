@@ -3,6 +3,7 @@
 #include "pico/multicore.h"
 #include "pico/sync.h"
 #include "hardware/pio.h"
+#include "hardware/watchdog.h"
 
 #include "dvi.h"
 #include "dvi_serialiser.h"
@@ -10,7 +11,6 @@
 #include "board.h"
 #include "video.h"
 
-#if VIDEO_MODE_576P
 // CEA-861 576p vertical timing exactly; horizontal blanking squeezed 144 -> 100
 // so the 25.6 MHz pixel clock still lands on 625 lines at ~50 Hz.
 static const struct dvi_timing dvi_timing_720x576p_50hz = {
@@ -28,18 +28,46 @@ static const struct dvi_timing dvi_timing_720x576p_50hz = {
 
     .bit_clk_khz     = 256000
 };
-#define DVI_TIMING  dvi_timing_720x576p_50hz
-#else
-#define DVI_TIMING  dvi_timing_640x480p_60hz
-#endif
+
+typedef struct {
+    const char              *name;
+    const struct dvi_timing *timing;
+} video_mode_t;
+
+static const video_mode_t modes[] = {
+    { "640x480@60", &dvi_timing_640x480p_60hz },
+    { "720x576@50", &dvi_timing_720x576p_50hz },
+};
+#define MODE_COUNT (sizeof modes / sizeof modes[0])
+
+// scratch[4] is off limits: watchdog_reboot() clears it.
+#define MODE_SCRATCH 3
+#define MODE_MAGIC   0x7712d0u
+
+#define FB_W_MAX     720u
+#define FB_H_MAX     576u
+static uint32_t framebuf[FB_W_MAX / VIDEO_FB_PPW * FB_H_MAX];
 
 static struct dvi_inst dvi0;
-static uint32_t framebuf[VIDEO_FB_WORDS * VIDEO_FB_H];
+static uint g_mode = 1;
+static uint g_fb_w, g_fb_h, g_fb_words;
 
 uint32_t *video_fb(void)    { return framebuf; }
-uint video_fb_width(void)   { return VIDEO_FB_W; }
-uint video_fb_height(void)  { return VIDEO_FB_H; }
-uint video_fb_words(void)   { return VIDEO_FB_WORDS; }
+uint video_fb_width(void)   { return g_fb_w; }
+uint video_fb_height(void)  { return g_fb_h; }
+uint video_fb_words(void)   { return g_fb_words; }
+
+uint video_mode_count(void)   { return MODE_COUNT; }
+uint video_mode_current(void) { return g_mode; }
+const char *video_mode_name(uint i) { return i < MODE_COUNT ? modes[i].name : ""; }
+
+void video_set_mode(uint i)
+{
+    if (i >= MODE_COUNT) return;
+    watchdog_hw->scratch[MODE_SCRATCH] = (MODE_MAGIC << 8) | i;
+    watchdog_reboot(0, 0, 50);
+    while (true) tight_loop_contents();
+}
 
 void video_clear(void)
 {
@@ -49,9 +77,9 @@ void video_clear(void)
 // Eight 80px bands cycling greys 0-3 twice.
 void video_test_pattern_stripes(void)
 {
-    for (uint y = 0; y < VIDEO_FB_H; y++) {
-        uint32_t *line = &framebuf[y * VIDEO_FB_WORDS];
-        for (uint w = 0; w < VIDEO_FB_WORDS; w++) {
+    for (uint y = 0; y < g_fb_h; y++) {
+        uint32_t *line = &framebuf[y * g_fb_words];
+        for (uint w = 0; w < g_fb_words; w++) {
             uint32_t word = 0;
             for (uint i = 0; i < VIDEO_FB_PPW; i++)
                 word |= ((w * VIDEO_FB_PPW + i) / 80u & 3u) << (VIDEO_FB_BPP * i);
@@ -60,17 +88,17 @@ void video_test_pattern_stripes(void)
     }
 }
 
-// Core1 keeps phase only by pushing exactly VIDEO_FB_H buffers per pass against
+// Core1 keeps phase only by pushing exactly g_fb_h buffers per pass against
 // libdvi's v_active_lines / v_repeat -- nothing re-syncs it, so a new mode must
 // keep that count right.
 // RAM-resident: an XIP stall costs the per-scanline budget.
 static void __not_in_flash_func(core1_mono)(void)
 {
     while (true) {
-        for (uint y = 0; y < VIDEO_FB_H; y++) {
+        for (uint y = 0; y < g_fb_h; y++) {
             uint32_t *tmdsbuf;
             queue_remove_blocking_u32(&dvi0.q_tmds_free, &tmdsbuf);
-            tmds_encode_2bpp(&framebuf[y * VIDEO_FB_WORDS], tmdsbuf, VIDEO_FB_W);
+            tmds_encode_2bpp(&framebuf[y * g_fb_words], tmdsbuf, g_fb_w);
             queue_add_blocking_u32(&dvi0.q_tmds_valid, &tmdsbuf);
         }
     }
@@ -85,11 +113,20 @@ static void core1_main(void)
 
 void video_init(void)
 {
+    uint32_t sel = watchdog_hw->scratch[MODE_SCRATCH];
+    if ((sel >> 8) == MODE_MAGIC && (sel & 0xffu) < MODE_COUNT)
+        g_mode = sel & 0xffu;
+
+    const struct dvi_timing *t = modes[g_mode].timing;
+    g_fb_w     = t->h_active_pixels;
+    g_fb_h     = t->v_active_lines;
+    g_fb_words = g_fb_w / VIDEO_FB_PPW;
+
 #if PICO_PIO_USE_GPIO_BASE
     pio_set_gpio_base(DVI_SERIAL_CFG.pio, DVI_GPIO_BASE);   // must precede dvi_init
 #endif
 
-    dvi0.timing  = &DVI_TIMING;
+    dvi0.timing  = t;
     dvi0.ser_cfg = DVI_SERIAL_CFG;
     dvi_init(&dvi0, next_striped_spin_lock_num(), next_striped_spin_lock_num());
 
