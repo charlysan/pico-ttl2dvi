@@ -5,6 +5,7 @@
 #include "sync.h"
 #include "version.h"
 #include "console.h"
+#include "commands.h"
 #include "video.h"
 #include "view.h"
 
@@ -24,6 +25,7 @@ int main(void) {
     // Do NOT wait for USB
 
     // Register console commands
+    console_init();
     console_register("version", cmd_version, "firmware version");
     console_register("status", cmd_status, "system status");
     console_register("capture", cmd_capture, "capture a frames");
