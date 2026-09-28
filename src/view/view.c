@@ -102,13 +102,22 @@ void __not_in_flash_func(view_render)(void)
     else
         first_row  = clampi(row_slack / 2 + g_vpos * vs, 0, row_slack);
 
-    const uint spb   = 8u / bits;                        // source pixels per byte
-    const bool fast  = bits != 6 && h_border <= 0 && ((-h_border) % (int)spb) == 0
-                       && (uint)(-h_border) + fb_w <= src_w;
-    const bool word5 = bits == 6 && h_border == 0 && fb_w <= src_w
-                       && fb_words % 5 == 0;
+    // The byte paths take sample k as pixel k, so they need one sample per
+    // pixel. At 2x only the resampling loop below applies.
+    const uint samples = capture_samples();
+    const bool one     = source_active()->oversample == 1;
+    const uint spb     = 8u / bits;                      // source pixels per byte
+    const bool fast    = one && bits != 6 && h_border <= 0
+                         && ((-h_border) % (int)spb) == 0
+                         && (uint)(-h_border) + fb_w <= samples;
+    const bool word5   = one && bits == 6 && h_border == 0 && fb_w <= samples
+                         && fb_words % 5 == 0;
 
-    static uint8_t src_row[CAPTURE_MAX_WIDTH];
+    const uint     spw   = 32u / bits;
+    const uint     shift = 32u - spw * bits;             // 2 at 6 bits, else 0
+    const uint32_t mask  = (1u << bits) - 1u;
+    const uint32_t spp   = capture_spp();
+    const uint     sft   = bits == 6 ? 0u : (uint)__builtin_ctz(spw);
 
     for (int i = 0; i < n; i++) {
         uint32_t  *fb_line = &fb[(uint)i * fb_words];
@@ -145,13 +154,20 @@ void __not_in_flash_func(view_render)(void)
             continue;
         }
 
-        capture_get_line(line, src_row);
-
+        // Resample: pixel k takes sample floor((k + 0.5) * spp), the one at
+        // the pixel's centre. At 1x that is sample k.
+        const uint32_t *raw = (const uint32_t *)capture_raw_line(line);
         for (uint w = 0; w < fb_words; w++) {
             uint32_t word = 0;
             for (uint j = 0; j < ppw; j++) {
                 const int k = (int)(w * ppw + j) - h_border;
-                const uint v = (k >= 0 && k < (int)src_w) ? map[src_row[k]] : 0;
+                uint v = 0;
+                if (k >= 0 && k < (int)src_w) {
+                    const uint s = ((2u * (uint)k + 1u) * spp) >> 17;
+                    const uint32_t d = sft ? raw[s >> sft] : raw[s / spw];
+                    const uint off   = sft ? (s & (spw - 1u)) : (s % spw);
+                    v = map[(d >> (shift + off * bits)) & mask];
+                }
                 word |= v << (bpp * j);
             }
             fb_line[w] = word;

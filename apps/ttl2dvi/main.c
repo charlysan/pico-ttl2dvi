@@ -42,7 +42,19 @@ int main(void) {
     console_register("dvi_test", cmd_test, "run dvi test pattern");
 
     while (true) {
-        if (capture_grab()) view_render();
+        if (capture_grab()) {
+            view_render();
+
+            // EGA follows the card between its two scan-rate families live:
+            // same sysclk and raster, so only core0 changes.
+            int v = source_ega_check(capture_line_cycles());
+            if (v >= 0) {
+                video_set_vmap(0, 1, 0);        // black until the next render
+                source_ega_select((uint)v);
+                capture_reconfigure();
+                view_init();
+            }
+        }
         console_poll();
     }
 

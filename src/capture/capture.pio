@@ -23,5 +23,5 @@ delay:
     mov x, y                ; x = samples_per_line - 1
 public sample:
     in pins, 2      [7]     ; patched: in pins, data_bits; autopush @32
-    jmp x-- sample  [7]     ; patched: delays sum to sample_cyc
+    jmp x-- sample  [7]     ; patched: delays sum to the sample period
 .wrap

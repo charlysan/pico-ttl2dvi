@@ -23,12 +23,15 @@ void cmd_status(int argc, char **argv) {
     uint32_t ph = sync_hsync(&pulse);
     uint32_t pv = sync_vsync_period();
 
+    const source_mode_t *src = source_active();
+    printf("  SOURCE: %s, %u data bits, %ux\n",
+           src->name, src->data_bits, src->oversample);
     printf("  SYSCLK: %lu.%03lu MHz\n",
            (unsigned long)(f / 1000000),
            (unsigned long)((f / 1000) % 1000));
     if (ph) {
         uint32_t h = (uint32_t)((uint64_t)f * 100 / ph);
-        uint cyc = capture_sample_cyc();
+        uint cyc = capture_px_cyc();
         printf("  HSYNC: %lu.%02lu Hz\n",
                (unsigned long)(h / 100), (unsigned long)(h % 100));
         printf("  PULSE: %lu cyc = %lu px + %lu/%u\n",
@@ -57,6 +60,10 @@ void cmd_status(int argc, char **argv) {
            (unsigned long)(fps / 100), (unsigned long)(fps % 100));
     last_frames = frames;
     last_us = now;
+
+    uint lo, hi;
+    capture_lines_range(&lo, &hi);
+    printf("  LINES: %u..%u\n", lo, hi);
 }
 
 void cmd_source(int argc, char **argv) {
@@ -142,7 +149,7 @@ void cmd_bp(int argc, char **argv) {
 
 void cmd_phase(int argc, char **argv) {
     if (argc >= 2) capture_set_phase(atoi(argv[1]));
-    printf("phase = %d/%u px\n", capture_get_phase(), capture_sample_cyc());
+    printf("phase = %d/%u px\n", capture_get_phase(), capture_px_cyc());
 }
 
 void cmd_test(int argc, char **argv) {

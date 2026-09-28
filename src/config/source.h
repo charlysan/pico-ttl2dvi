@@ -16,10 +16,13 @@ typedef struct {
     uint        active_w;    // visible pixels per line
     uint        data_base;   // first data GPIO
     uint        data_bits;   // data lines sampled: 2, 4 or 6
-    uint        sample_cyc;  // sysclk per sample = sysclk / dot clock
+    uint        dot_hz;      // pixel clock
+    uint        oversample;  // samples per pixel: 1, or 2 when sysclk / dot_hz
+                             // is too far from an integer
     int         def_bp;
     int         def_phase;
-    uint        def_vscale;  // display lines per source line at boot
+    uint        def_vscale;  // display lines per source line
+    uint        hsync_hz;    // EGA variants only: the line rate that selects it
 } source_mode_t;
 
 // Call first in main(): resolves the active source before the overclock.
@@ -32,5 +35,13 @@ uint source_active_index(void);
 
 // Switching reboots; the choice survives in watchdog scratch[5].
 void source_select(uint i);
+
+// EGA runs one of two variants (350-line / 200-line families) and follows the
+// card live, without a reboot. Call source_ega_check() after every grab with
+// the measured line period: it returns the variant to switch to, or -1.
+// source_ega_select() then updates source_active() in place; the caller must
+// reconfigure capture and view around it.
+int  source_ega_check(uint32_t line_cycles);
+void source_ega_select(uint variant);
 
 #endif
