@@ -25,7 +25,8 @@ uint video_fb_height(void);
 uint video_fb_words(void);
 uint video_fb_bpp(void);
 
-// CGA sample (I | R<<1 | G<<2 | B<<3) -> RGB222 byte, 16 entries.
+// RGBI sample (I | R<<1 | G<<2 | B<<3) -> RGB222 byte, 16 entries.
+// Used by every 4-bit RGBI source (CGA, C128).
 const uint8_t *video_cga_rgb222(void);
 
 void video_clear(void);

@@ -6,6 +6,7 @@
 
 #define SRC_ID_MDA16   2     // stable: stored across reboots
 #define SRC_ID_CGA     3
+#define SRC_ID_C128    4
 
 typedef struct {
     uint8_t     id;

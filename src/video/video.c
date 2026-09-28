@@ -47,6 +47,23 @@ static const struct dvi_timing dvi_timing_640x480p_60hz_258 = {
     .bit_clk_khz     = 258000
 };
 
+// Same at 256 MHz: htotal 812 so 25.6 MHz lands on ~60 Hz.
+static const struct dvi_timing dvi_timing_640x480p_60hz_256 = {
+    .h_sync_polarity = false,
+    .h_front_porch   = 16,
+    .h_sync_width    = 96,
+    .h_back_porch    = 60,
+    .h_active_pixels = 640,
+
+    .v_sync_polarity = false,
+    .v_front_porch   = 10,
+    .v_sync_width    = 2,
+    .v_back_porch    = 33,
+    .v_active_lines  = 480,
+
+    .bit_clk_khz     = 256000
+};
+
 typedef struct {
     const char              *name;
     const struct dvi_timing *timing;
@@ -64,6 +81,10 @@ static const video_mode_t cga_modes[] = {
     { "640x480@60", &dvi_timing_640x480p_60hz_258, 8, 2 },
 };
 
+static const video_mode_t c128_modes[] = {
+    { "640x480@60", &dvi_timing_640x480p_60hz_256, 8, 2 },
+};
+
 typedef struct {
     uint8_t             src_id;
     const video_mode_t *modes;
@@ -75,6 +96,7 @@ typedef struct {
 static const mode_set_t mode_sets[] = {
     { SRC_ID_MDA16,  MODES(mda16_modes),  1 },
     { SRC_ID_CGA,    MODES(cga_modes),    0 },
+    { SRC_ID_C128,   MODES(c128_modes),   0 },
 };
 
 // scratch[4] is off limits: watchdog_reboot() clears it.

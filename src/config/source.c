@@ -29,9 +29,24 @@ static const source_mode_t src_cga = {
     .def_phase  = 4,
 };
 
+// Commodore 128 80-column VDC: same RGBI lines and colours as CGA, own 16.000
+// MHz crystal: 256 MHz = 16 sysclk per pixel.
+static const source_mode_t src_c128 = {
+    .id         = SRC_ID_C128,
+    .name       = "C128",
+    .sysclk_khz = 256000,
+    .active_w   = 640,
+    .data_base  = 21,        // I, R, G, B
+    .data_bits  = 4,
+    .sample_cyc = 16,
+    .def_bp     = 130,
+    .def_phase  = 4,
+};
+
 static const source_mode_t *const sources[] = {
     &src_mda16,
     &src_cga,
+    &src_c128,
 };
 #define SOURCE_COUNT (sizeof sources / sizeof sources[0])
 
