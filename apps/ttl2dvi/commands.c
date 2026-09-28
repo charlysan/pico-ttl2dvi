@@ -171,6 +171,10 @@ void cmd_dotclock(int argc, char **argv) {
     else      printf("  at 1x no slip\n");
 }
 
+void cmd_fastcap(int argc, char **argv) {
+    capture_dump_fast(argc >= 2 ? (uint)atoi(argv[1]) : 80u);
+}
+
 void cmd_scanlines(int argc, char **argv) {
     if (argc >= 2) {
         if (!strcmp(argv[1], "on"))       video_set_scanlines(true);

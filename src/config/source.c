@@ -65,7 +65,7 @@ static const source_mode_t ega_v350 = {
 };
 
 // EGA, 200-line family (15.81 kHz): 320x200, 640x200 and the CGA modes. Only
-// RGBI is driven: pin 6 is INTENSITY, as on CGA. 14.156 MHz (28.322 / 2):
+// RGBI is driven: pin 6 is INTENSITY, as on CGA. 14.161 MHz (28.322 / 2):
 // 266.4 MHz = 18.82 sysclk per pixel, too far from an integer for one sample
 // per pixel, so capture samples it at 2x. Same sysclk and raster as the 350
 // family, which is what lets the two switch live.
@@ -76,9 +76,9 @@ static const source_mode_t ega_v200 = {
     .active_w   = 640,
     .data_base  = 21,        // I, R, G, B
     .data_bits  = 4,
-    .dot_hz     = 14156000,
+    .dot_hz     = 14160700,
     .def_bp     = 85,
-    .def_phase  = 6,
+    .def_phase  = 9,
     .def_vscale = 2,
     .hsync_hz   = 15809,
 };

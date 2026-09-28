@@ -179,12 +179,16 @@ static bool wait_vsync(bool level)
     return true;
 }
 
+static uint32_t g_pulse;
+static uint g_max_samples = CAPTURE_MAX_SAMPLES;
+
 static bool fit_sampling(void)
 {
     uint32_t pulse;
     uint32_t line = sync_hsync(&pulse);
     if (!line) return false;
     g_line_cyc = line;
+    g_pulse    = pulse;
 
     uint32_t relock = 3u * g_px_cyc + 8u;
 
@@ -199,8 +203,8 @@ static bool fit_sampling(void)
     // margin: the front porch is not worth rawbuf.
     uint32_t samples = (line - delay_cyc - relock) / g_cyc;
     uint32_t cap = (uint32_t)(((uint64_t)(g_active_w + 16u) * g_spp) >> 16);
-    if (cap > CAPTURE_MAX_SAMPLES) cap = CAPTURE_MAX_SAMPLES;
-    if (samples > cap)             samples = cap;
+    if (cap > g_max_samples) cap = g_max_samples;
+    if (samples > cap)       samples = cap;
     samples -= samples % g_spw;
 
     g_samples_per_line = (uint)samples;
@@ -285,6 +289,78 @@ void capture_get_line(uint line, uint8_t *dst)
         dst[s] = (uint8_t)((src[s / g_spw] >> (g_shift + (s % g_spw) * g_bits)) & mask);
 }
 
+#define ALPHABET "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/"
+#define FAST_CYC         2u       // sysclk per sample in fastcap
+#define FAST_MAX_SAMPLES 8192u
+
+// One sample every FAST_CYC sysclk, same window start as normal capture (same
+// bp, phase 0), for as many lines as rawbuf holds, starting skip lines after
+// the VSYNC edge. For tools/autotune.py: pixel edges timed to FAST_CYC.
+void capture_dump_fast(uint skip)
+{
+    capture_hold();
+    pio_sm_clear_fifos(pio, sm);
+
+    const uint cyc = g_cyc, phase = g_phase;
+    const uint32_t spp = g_spp;
+    g_cyc   = FAST_CYC;
+    g_spp   = (uint32_t)(((uint64_t)spp * cyc) / FAST_CYC);
+    g_phase = 0;
+    g_max_samples = FAST_MAX_SAMPLES;
+    patch_sample_loop();
+
+    bool ok = wait_vsync(true) && wait_vsync(false) && fit_sampling();
+    uint lines = 0;
+    if (ok) {
+        const uint32_t mhz = clock_get_hz(clk_sys) / 1000000u;
+        busy_wait_us((uint64_t)skip * g_line_cyc / mhz);
+        arm();
+        absolute_time_t d = make_timeout_time_ms(200);
+        while (dma_channel_is_busy(dma_chan) && !time_reached(d))
+            tight_loop_contents();
+        pio_sm_set_enabled(pio, sm, false);
+        dma_channel_abort(dma_chan);
+        uint32_t written = (dma_channel_hw_addr(dma_chan)->write_addr
+                            - (uintptr_t)rawbuf) / 4;
+        lines = written / g_words_per_line;
+    }
+    const uint samples = g_samples_per_line, words = g_words_per_line;
+    const uint32_t delay = g_delay;
+
+    g_cyc = cyc;
+    g_spp = spp;
+    g_phase = phase;
+    g_max_samples = CAPTURE_MAX_SAMPLES;
+    patch_sample_loop();
+
+    if (!ok || !lines) {
+        printf("fastcap: no sync signal\n");
+        return;
+    }
+
+    printf("@@@BEGIN\n");
+    printf("FAST SYSCLK %lu LINE %lu PULSE %lu BP %u DELAY %lu CYC %u "
+           "DOT %u BITS %u ACTIVE %u SKIP %u\n",
+           (unsigned long)clock_get_hz(clk_sys), (unsigned long)g_line_cyc,
+           (unsigned long)g_pulse, g_bp, (unsigned long)delay, FAST_CYC,
+           g_dot_hz, g_bits, g_active_w, skip);
+    printf("W %u H %u BPP %u\n", samples, lines, g_bits);
+    const uint32_t mask = (1u << g_bits) - 1u;
+    char buf[256];
+    for (uint line = 0; line < lines; line++) {
+        const uint32_t *src = &rawbuf[line * words];
+        uint n = 0;
+        for (uint s = 0; s < samples; s++) {
+            buf[n++] = ALPHABET[(src[s / g_spw] >> (g_shift + (s % g_spw) * g_bits)) & mask];
+            if (n == sizeof buf) { fwrite(buf, 1, n, stdout); n = 0; }
+        }
+        buf[n++] = '\n';
+        fwrite(buf, 1, n, stdout);
+    }
+    printf("@@@END\n");
+    fflush(stdout);
+}
+
 void capture_dump_frame(void)
 {
     if (!capture_grab()) {
@@ -302,7 +378,7 @@ void capture_dump_frame(void)
     for (uint line = 0; line < g_lines; line++) {
         capture_get_line(line, vals);
         for (uint s = 0; s < g_samples_per_line; s++)
-            row[s] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/"[vals[s]];
+            row[s] = ALPHABET[vals[s]];
         row[g_samples_per_line] = '\0';
         puts(row);
     }

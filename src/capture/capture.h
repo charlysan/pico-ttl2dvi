@@ -39,4 +39,5 @@ void capture_get_line(uint line, uint8_t *dst);  // unpack one line, one sample 
 const uint8_t *capture_raw_line(uint line);      // packed samples, LSB first
 void capture_hold(void);                         // stop the sampler; next grab re-syncs
 void capture_dump_frame(void);
+void capture_dump_fast(uint skip);               // for tools/autotune.py
 #endif

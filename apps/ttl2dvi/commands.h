@@ -14,6 +14,7 @@ void cmd_vpos(int argc, char **argv);
 void cmd_hpos(int argc, char **argv);
 void cmd_scanlines(int argc, char **argv);
 void cmd_dotclock(int argc, char **argv);
+void cmd_fastcap(int argc, char **argv);
 
 // --- capture ---
 void cmd_capture(int argc, char **argv);
