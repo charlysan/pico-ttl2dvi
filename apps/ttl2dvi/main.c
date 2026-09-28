@@ -39,6 +39,7 @@ int main(void) {
     console_register("scanlines", cmd_scanlines, "scanlines on|off (needs vscale >= 2)");
     console_register("capture", cmd_capture, "capture a frames");
     console_register("bp", cmd_bp, "back porch");
+    console_register("dotclock", cmd_dotclock, "dot clock in MHz, or default");
     console_register("phase", cmd_phase, "sampling phase, sysclk steps within a pixel");
     console_register("dvi_test", cmd_test, "run dvi test pattern");
 

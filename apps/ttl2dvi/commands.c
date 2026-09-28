@@ -135,6 +135,40 @@ void cmd_hpos(int argc, char **argv) {
     printf("hpos = %d source px\n", view_get_hpos());
 }
 
+void cmd_dotclock(int argc, char **argv) {
+    if (argc >= 2) {
+        uint hz = 0;
+        if (strcmp(argv[1], "default")) {
+            char *end;
+            double mhz = strtod(argv[1], &end);
+            if (*end || mhz <= 0.0) {
+                printf("dotclock <MHz>|default\n");
+                return;
+            }
+            hz = (uint)(mhz * 1e6 + 0.5);
+        }
+        if (!capture_set_dot_hz(hz))
+            printf("out of range for this sysclk\n");
+    }
+
+    const uint dot = capture_dot_hz();
+    const uint32_t spp = capture_spp();
+    const uint64_t px100 = (uint64_t)clock_get_hz(clk_sys) * 100u / dot;
+    printf("dotclock = %u.%03u MHz%s: %lu.%02lu sysclk/px, sample every %u, spp %lu.%04lu\n",
+           dot / 1000000u, (dot / 1000u) % 1000u,
+           dot == source_active()->dot_hz ? " (default)" : "",
+           (unsigned long)(px100 / 100u), (unsigned long)(px100 % 100u),
+           capture_sample_cyc(),
+           (unsigned long)(spp >> 16), (unsigned long)(((spp & 0xffffu) * 10000u) >> 16));
+
+    // At 1x a whole pixel is skipped or repeated every 0.5 / |spp - 1| px.
+    if (source_active()->oversample == 1) {
+        const uint32_t d = spp > 0x10000u ? spp - 0x10000u : 0x10000u - spp;
+        if (d) printf("  1x: a pixel slips every %lu px\n", (unsigned long)(0x8000u / d));
+        else   printf("  1x: no slip\n");
+    }
+}
+
 void cmd_scanlines(int argc, char **argv) {
     if (argc >= 2) {
         if (!strcmp(argv[1], "on"))       video_set_scanlines(true);

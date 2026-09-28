@@ -18,6 +18,7 @@ _Static_assert(PIN_HSYNC == 27, "capture.pio wait gpio 27");
 // pio0 (base 0): capture pins 20-27. DVI owns pio1.
 static PIO pio = pio0;
 static uint sm, prog_off;
+static uint g_dot_hz, g_oversample;
 static uint g_px_cyc, g_cyc;              // sysclk per pixel (rounded), per sample
 static uint32_t g_spp;                    // samples per pixel, 16.16
 static uint g_bits, g_spw;                // bits/sample, samples/word
@@ -38,6 +39,8 @@ uint capture_width(void)      { return (uint)(((uint64_t)g_samples_per_line << 1
 uint capture_samples(void)    { return g_samples_per_line; }
 uint capture_height(void)     { return g_lines; }
 uint capture_px_cyc(void)     { return g_px_cyc; }
+uint capture_sample_cyc(void) { return g_cyc; }
+uint capture_dot_hz(void)     { return g_dot_hz; }
 uint32_t capture_spp(void)    { return g_spp; }
 uint32_t capture_line_cycles(void) { return g_line_cyc; }
 uint32_t capture_frames(void) { return g_frames; }
@@ -80,18 +83,29 @@ static void patch_sample_loop(void)
                            | pio_encode_delay(g_cyc / 2 - 1);
 }
 
+// px_cyc: whole-pixel unit for bp and phase. cyc: the sample period the loop
+// can hit exactly. spp from the unrounded ratio, so the view tracks the true
+// pixel rate across the line. False if the loop can't run that period (two
+// 5-bit delay slots: 2..64 sysclk).
+static bool derive_rate(uint dot_hz)
+{
+    const float px  = (float)clock_get_hz(clk_sys) / (float)dot_hz;
+    const uint  cyc = (uint)(px / (float)g_oversample + 0.5f);
+    if (cyc < 2 || cyc > 64) return false;
+    g_dot_hz = dot_hz;
+    g_px_cyc = (uint)(px + 0.5f);
+    g_cyc    = cyc;
+    g_spp    = (uint32_t)(px / (float)g_cyc * 65536.0f + 0.5f);
+    return true;
+}
+
 // Everything that depends on the active source. The SM must be stopped.
 static void apply_source(void)
 {
     const source_mode_t *src = source_active();
 
-    // px_cyc: whole-pixel unit for bp and phase. cyc: the sample period the
-    // loop can hit exactly. spp from the unrounded ratio, so the view tracks
-    // the true pixel rate across the line.
-    const float px = (float)clock_get_hz(clk_sys) / (float)src->dot_hz;
-    g_px_cyc = (uint)(px + 0.5f);
-    g_cyc    = (uint)(px / (float)src->oversample + 0.5f);
-    g_spp    = (uint32_t)(px / (float)g_cyc * 65536.0f + 0.5f);
+    g_oversample = src->oversample;
+    derive_rate(src->dot_hz);
 
     g_bits     = src->data_bits;
     g_spw      = 32u / g_bits;
@@ -120,6 +134,19 @@ void capture_reconfigure(void)
     capture_hold();
     pio_sm_clear_fifos(pio, sm);
     apply_source();
+}
+
+// Live: re-patches the sample loop, keeps bp; phase is clamped to the new
+// pixel. 0 = the source's own dot clock.
+bool capture_set_dot_hz(uint dot_hz)
+{
+    if (!dot_hz) dot_hz = source_active()->dot_hz;
+    capture_hold();
+    pio_sm_clear_fifos(pio, sm);
+    if (!derive_rate(dot_hz)) return false;
+    patch_sample_loop();
+    capture_set_phase((int)g_phase);
+    return true;
 }
 
 void capture_init(void)

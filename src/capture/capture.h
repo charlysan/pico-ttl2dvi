@@ -15,7 +15,13 @@ void capture_init(void);
 // defaults) without claiming anything again. For a live source change.
 void capture_reconfigure(void);
 
+// Dot clock in use; 0 restores the source's. Live, keeps bp. False if the
+// sample loop can't run the resulting period (the old one stays).
+bool capture_set_dot_hz(uint dot_hz);
+uint capture_dot_hz(void);
+
 uint capture_px_cyc(void);                       // sysclk per pixel, rounded
+uint capture_sample_cyc(void);                   // sysclk per sample
 uint32_t capture_spp(void);                      // samples per pixel, 16.16
 uint32_t capture_line_cycles(void);              // last measured line, sysclk
 uint32_t capture_frames(void);                   // frames grabbed since boot
