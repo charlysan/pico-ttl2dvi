@@ -7,6 +7,7 @@
 #define SRC_ID_MDA16   2     // stable: stored across reboots
 #define SRC_ID_CGA     3
 #define SRC_ID_C128    4
+#define SRC_ID_EGA     5
 
 typedef struct {
     uint8_t     id;
@@ -14,10 +15,11 @@ typedef struct {
     uint        sysclk_khz;
     uint        active_w;    // visible pixels per line
     uint        data_base;   // first data GPIO
-    uint        data_bits;   // data lines sampled: 2 or 4
+    uint        data_bits;   // data lines sampled: 2, 4 or 6
     uint        sample_cyc;  // sysclk per sample = sysclk / dot clock
     int         def_bp;
     int         def_phase;
+    uint        def_vscale;  // display lines per source line at boot
 } source_mode_t;
 
 // Call first in main(): resolves the active source before the overclock.

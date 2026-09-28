@@ -3,6 +3,9 @@
 
 #include "pico/types.h"     // uint
 
+// Apply the active source's defaults. Call once, after video_init().
+void view_init(void);
+
 // Composite the last captured frame into the DVI framebuffer. Call after a
 // successful capture_grab().
 void view_render(void);
@@ -12,9 +15,9 @@ void view_set_mda_levels(uint normal, uint bright);
 uint view_get_mda_normal(void);
 uint view_get_mda_bright(void);
 
-// Display-side framing, applies next frame. vscale 1..4 draws each source line
-// N times; vpos (source lines, + = down) and hpos (source px, + = right) move
-// the already captured image.
+// Display-side framing, applies next frame. vscale 1..4 shows each source line
+// on N display lines (core1 repeats it); vpos (source lines, + = down) and
+// hpos (source px, + = right) move the already captured image.
 void view_set_vscale(int n);
 uint view_get_vscale(void);
 void view_set_vpos(int n);

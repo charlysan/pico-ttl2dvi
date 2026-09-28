@@ -64,25 +64,45 @@ static const struct dvi_timing dvi_timing_640x480p_60hz_256 = {
     .bit_clk_khz     = 256000
 };
 
+// Same at 266.4 MHz: htotal 846 so 26.64 MHz lands on 59.98 Hz.
+static const struct dvi_timing dvi_timing_640x480p_60hz_266 = {
+    .h_sync_polarity = false,
+    .h_front_porch   = 16,
+    .h_sync_width    = 96,
+    .h_back_porch    = 94,
+    .h_active_pixels = 640,
+
+    .v_sync_polarity = false,
+    .v_front_porch   = 10,
+    .v_sync_width    = 2,
+    .v_back_porch    = 33,
+    .v_active_lines  = 480,
+
+    .bit_clk_khz     = 266400
+};
+
 typedef struct {
     const char              *name;
     const struct dvi_timing *timing;
     uint                     bpp;    // 2 = mono tmds_encode_2bpp, 8 = RGB222
-    uint                     rep;    // display lines per framebuffer row
 } video_mode_t;
 
 // A mode's bit_clk_khz must equal its source's sysclk_khz.
 static const video_mode_t mda16_modes[] = {
-    { "640x480@60", &dvi_timing_640x480p_60hz,     2, 1 },
-    { "720x576@50", &dvi_timing_720x576p_50hz,     2, 1 },
+    { "640x480@60", &dvi_timing_640x480p_60hz,     2 },
+    { "720x576@50", &dvi_timing_720x576p_50hz,     2 },
 };
 
 static const video_mode_t cga_modes[] = {
-    { "640x480@60", &dvi_timing_640x480p_60hz_258, 8, 2 },
+    { "640x480@60", &dvi_timing_640x480p_60hz_258, 8 },
 };
 
 static const video_mode_t c128_modes[] = {
-    { "640x480@60", &dvi_timing_640x480p_60hz_256, 8, 2 },
+    { "640x480@60", &dvi_timing_640x480p_60hz_256, 8 },
+};
+
+static const video_mode_t ega_modes[] = {
+    { "640x480@60", &dvi_timing_640x480p_60hz_266, 8 },
 };
 
 typedef struct {
@@ -97,6 +117,7 @@ static const mode_set_t mode_sets[] = {
     { SRC_ID_MDA16,  MODES(mda16_modes),  1 },
     { SRC_ID_CGA,    MODES(cga_modes),    0 },
     { SRC_ID_C128,   MODES(c128_modes),   0 },
+    { SRC_ID_EGA,    MODES(ega_modes),    0 },
 };
 
 // scratch[4] is off limits: watchdog_reboot() clears it.
@@ -105,9 +126,17 @@ static const mode_set_t mode_sets[] = {
 #define MODE_SCRATCH 3
 #define MODE_MAGIC   0x77d0u
 
-// Largest mode: CGA 640x240 at 8bpp. MDA 720x576 at 2bpp is 25,920.
-#define FB_WORDS     38400u
+// One row per stored source line: 350 rows at 640 x 8bpp (EGA), all 576 at
+// 720 x 2bpp (MDA).
+#define FB_WORDS     56000u
+#define FB_W_MAX     720u
 static uint32_t framebuf[FB_WORDS];
+static uint32_t zero_row[FB_W_MAX / 4];
+
+// Display line y shows stored row (y - first) / rep, or black outside the
+// n * rep lines from first. One word so core1 never sees half an update:
+// first in bits 0-11, rep in 12-15, n in 16-27.
+static volatile uint32_t g_vmap;
 
 // RGB222 field positions in a framebuffer byte: R 5:4, G 3:2, B 1:0.
 #define R_MSB 5
@@ -118,18 +147,37 @@ static uint32_t framebuf[FB_WORDS];
 #define B_LSB 0
 
 static uint8_t cga_rgb222[16];
+static uint8_t ega_rgb222[64];
 
 static struct dvi_inst dvi0;
 static const mode_set_t *g_set = &mode_sets[0];
 static uint g_mode;
-static uint g_fb_w, g_fb_h, g_fb_words, g_bpp, g_rep;
+static uint g_fb_w, g_fb_rows, g_fb_words, g_bpp, g_lines;
 
 uint32_t *video_fb(void)    { return framebuf; }
 uint video_fb_width(void)   { return g_fb_w; }
-uint video_fb_height(void)  { return g_fb_h; }
+uint video_fb_rows(void)    { return g_fb_rows; }
 uint video_fb_words(void)   { return g_fb_words; }
 uint video_fb_bpp(void)     { return g_bpp; }
+uint video_lines(void)      { return g_lines; }
 const uint8_t *video_cga_rgb222(void) { return cga_rgb222; }
+const uint8_t *video_ega_rgb222(void) { return ega_rgb222; }
+
+void video_set_vmap(uint first, uint rep, uint n)
+{
+    if (n > g_fb_rows) n = g_fb_rows;
+    g_vmap = (first & 0xfffu) | (rep & 0xfu) << 12 | (n & 0xfffu) << 16;
+}
+
+// The stored row for display line y, or the zero row.
+static inline const uint32_t *row_for(uint y)
+{
+    uint32_t m = g_vmap;
+    uint first = m & 0xfffu, rep = (m >> 12) & 0xfu, n = (m >> 16) & 0xfffu;
+    if (y < first || !rep) return zero_row;
+    uint r = (y - first) / rep;
+    return r < n ? &framebuf[r * g_fb_words] : zero_row;
+}
 
 uint video_mode_count(void)   { return g_set->count; }
 uint video_mode_current(void) { return g_mode; }
@@ -156,6 +204,18 @@ static void build_cga_rgb222(void)
     }
 }
 
+// Sample sB | sG<<1 | R<<2 | G<<3 | B<<4 | sR<<5 -> RGB222. Each channel's level
+// is (primary << 1) | secondary: EGA's 4 levels, lossless.
+static void build_ega_rgb222(void)
+{
+    for (uint i = 0; i < 64; i++) {
+        uint r = ((i >> 2) & 1) << 1 | ((i >> 5) & 1);
+        uint g = ((i >> 3) & 1) << 1 | ((i >> 1) & 1);
+        uint b = ((i >> 4) & 1) << 1 | (i & 1);
+        ega_rgb222[i] = (uint8_t)((r << R_LSB) | (g << G_LSB) | (b << B_LSB));
+    }
+}
+
 void video_clear(void)
 {
     memset(framebuf, 0, sizeof framebuf);
@@ -166,7 +226,9 @@ void video_clear(void)
 void video_test_pattern_stripes(void)
 {
     const uint ppw = 32u / g_bpp;
-    for (uint y = 0; y < g_fb_h; y++) {
+    const uint rep = (g_lines + g_fb_rows - 1) / g_fb_rows;
+    const uint n   = (g_lines + rep - 1) / rep;
+    for (uint y = 0; y < n; y++) {
         uint32_t *line = &framebuf[y * g_fb_words];
         for (uint w = 0; w < g_fb_words; w++) {
             uint32_t word = 0;
@@ -178,20 +240,20 @@ void video_test_pattern_stripes(void)
             line[w] = word;
         }
     }
+    video_set_vmap(0, rep, n);
 }
 
 // Core1 keeps phase only by pushing exactly v_active_lines buffers per pass --
-// nothing re-syncs it, so a new mode must keep that count right.
+// nothing re-syncs it, so that count must never change.
 // RAM-resident: an XIP stall costs the per-scanline budget.
 static void __not_in_flash_func(core1_mono)(void)
 {
     const uint wpc = dvi0.timing_derived.tmds_words_per_channel;
-    const uint lines = g_fb_h * g_rep;
     while (true) {
-        for (uint y = 0; y < lines; y++) {
+        for (uint y = 0; y < g_lines; y++) {
             uint32_t *tb;
             queue_remove_blocking_u32(&dvi0.q_tmds_free, &tb);
-            tmds_encode_2bpp(&framebuf[y / g_rep * g_fb_words], tb, g_fb_w);
+            tmds_encode_2bpp(row_for(y), tb, g_fb_w);
             memcpy(tb + wpc,     tb, wpc * sizeof(uint32_t));
             memcpy(tb + 2 * wpc, tb, wpc * sizeof(uint32_t));
             queue_add_blocking_u32(&dvi0.q_tmds_valid, &tb);
@@ -203,10 +265,9 @@ static void __not_in_flash_func(core1_mono)(void)
 static void __not_in_flash_func(core1_rgb222)(void)
 {
     const uint wpc = dvi0.timing_derived.tmds_words_per_channel;
-    const uint lines = g_fb_h * g_rep;
     while (true) {
-        for (uint y = 0; y < lines; y++) {
-            const uint32_t *pix = &framebuf[y / g_rep * g_fb_words];
+        for (uint y = 0; y < g_lines; y++) {
+            const uint32_t *pix = row_for(y);
             uint32_t *tb;
             queue_remove_blocking_u32(&dvi0.q_tmds_free, &tb);
             tmds_encode_data_channel_8bpp_fullres(pix, tb,           g_fb_w, B_MSB, B_LSB);
@@ -240,12 +301,14 @@ void video_init(void)
     const video_mode_t *m = &g_set->modes[g_mode];
     const struct dvi_timing *t = m->timing;
     g_bpp      = m->bpp;
-    g_rep      = m->rep;
+    g_lines    = t->v_active_lines;
     g_fb_w     = t->h_active_pixels;
-    g_fb_h     = t->v_active_lines / g_rep;
     g_fb_words = g_fb_w / (32u / g_bpp);
+    g_fb_rows  = FB_WORDS / g_fb_words;
+    if (g_fb_rows > g_lines) g_fb_rows = g_lines;
 
     build_cga_rgb222();
+    build_ega_rgb222();
 
 #if PICO_PIO_USE_GPIO_BASE
     pio_set_gpio_base(DVI_SERIAL_CFG.pio, DVI_GPIO_BASE);   // must precede dvi_init

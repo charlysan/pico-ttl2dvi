@@ -10,7 +10,7 @@
 
 #define PIO_CLKDIV        1.0f
 #define BP_MAX            255u
-#define RAW_WORDS         30000u   // one frame; lines = RAW_WORDS / words per line
+#define RAW_WORDS         49000u   // one frame; lines = RAW_WORDS / words per line
 
 _Static_assert(PIN_HSYNC == 27, "capture.pio wait gpio 27");
 
@@ -18,6 +18,7 @@ _Static_assert(PIN_HSYNC == 27, "capture.pio wait gpio 27");
 static PIO pio = pio0;
 static uint sm, prog_off;
 static uint g_cyc, g_bits, g_spw;         // sysclk/sample, bits/sample, samples/word
+static uint g_shift;                      // bit of the first sample in a word
 static uint g_lines, g_samples_per_line, g_words_per_line, g_delay;
 static uint g_lines_prev;
 static bool g_armed;
@@ -68,6 +69,7 @@ void capture_init(void)
     g_cyc   = src->sample_cyc;
     g_bits  = src->data_bits;
     g_spw   = 32u / g_bits;
+    g_shift = 32u - g_spw * g_bits;
     g_bp    = (uint)src->def_bp;
     g_phase = (uint)src->def_phase;
 
@@ -81,7 +83,9 @@ void capture_init(void)
 
     pio_sm_config c = capture_program_get_default_config(prog_off);
     sm_config_set_in_pins(&c, src->data_base);
-    sm_config_set_in_shift(&c, true, true, 32);        // right, autopush @32
+    // Right shift, autopush at a whole number of samples: 32 bits, or 30 at
+    // 6 bits, which leaves the samples in the top 30 bits of each word.
+    sm_config_set_in_shift(&c, true, true, g_spw * g_bits);
     sm_config_set_clkdiv(&c, PIO_CLKDIV);
     pio_sm_init(pio, sm, prog_off, &c);               // left disabled
 
@@ -203,7 +207,7 @@ void capture_get_line(uint line, uint8_t *dst)
     const uint32_t *src  = &rawbuf[line * g_words_per_line];
     const uint32_t  mask = (1u << g_bits) - 1u;
     for (uint s = 0; s < g_samples_per_line; s++)
-        dst[s] = (uint8_t)((src[s / g_spw] >> ((s % g_spw) * g_bits)) & mask);
+        dst[s] = (uint8_t)((src[s / g_spw] >> (g_shift + (s % g_spw) * g_bits)) & mask);
 }
 
 void capture_dump_frame(void)
@@ -221,7 +225,7 @@ void capture_dump_frame(void)
     for (uint line = 0; line < g_lines; line++) {
         capture_get_line(line, vals);
         for (uint s = 0; s < g_samples_per_line; s++)
-            row[s] = "0123456789abcdef"[vals[s]];
+            row[s] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/"[vals[s]];
         row[g_samples_per_line] = '\0';
         puts(row);
     }

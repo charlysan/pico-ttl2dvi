@@ -13,6 +13,7 @@ static const source_mode_t src_mda16 = {
     .sample_cyc = 16,
     .def_bp     = 16,
     .def_phase  = 0,
+    .def_vscale = 1,
 };
 
 // CGA, 14.3333 MHz dot clock: 258 MHz = 18 sysclk per pixel.
@@ -27,6 +28,7 @@ static const source_mode_t src_cga = {
     .sample_cyc = 18,
     .def_bp     = 120,
     .def_phase  = 4,
+    .def_vscale = 2,
 };
 
 // Commodore 128 80-column VDC: same RGBI lines and colours as CGA, own 16.000
@@ -41,12 +43,30 @@ static const source_mode_t src_c128 = {
     .sample_cyc = 16,
     .def_bp     = 130,
     .def_phase  = 4,
+    .def_vscale = 2,
+};
+
+// EGA, 350-line family (21.98 kHz): 640x350 graphics and 80x25 text. All six
+// lines are driven. 17.750 MHz dot clock (35.500 crystal / 2): 266.4 MHz =
+// 15.008 sysclk per pixel, so the first sample slip lands past pixel 640.
+static const source_mode_t src_ega = {
+    .id         = SRC_ID_EGA,
+    .name       = "EGA",
+    .sysclk_khz = 266400,
+    .active_w   = 640,
+    .data_base  = 20,        // sB, sG, R, G, B, sR
+    .data_bits  = 6,
+    .sample_cyc = 15,
+    .def_bp     = 53,
+    .def_phase  = 6,
+    .def_vscale = 1,
 };
 
 static const source_mode_t *const sources[] = {
     &src_mda16,
     &src_cga,
     &src_c128,
+    &src_ega,
 };
 #define SOURCE_COUNT (sizeof sources / sizeof sources[0])
 

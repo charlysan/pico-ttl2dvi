@@ -21,6 +21,7 @@ int main(void) {
     video_init();
     sync_init();
     capture_init();
+    view_init();
 
     stdio_init_all();
     // Do NOT wait for USB

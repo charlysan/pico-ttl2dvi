@@ -48,6 +48,7 @@ uint view_get_mda_bright(void) { return level[3]; }
 static uint g_vscale = 1;
 static int  g_vpos, g_hpos;
 
+void view_init(void)         { g_vscale = source_active()->def_vscale; }
 void view_set_vscale(int n)  { g_vscale = n < 1 ? 1 : (n > 4 ? 4 : (uint)n); }
 uint view_get_vscale(void)   { return g_vscale; }
 void view_set_vpos(int n)    { g_vpos = n; }
@@ -55,55 +56,81 @@ int  view_get_vpos(void)     { return g_vpos; }
 void view_set_hpos(int n)    { g_hpos = n; }
 int  view_get_hpos(void)     { return g_hpos; }
 
+static inline int clampi(int v, int lo, int hi)
+{
+    return v < lo ? lo : (v > hi ? hi : v);
+}
+
 void __not_in_flash_func(view_render)(void)
 {
     const uint src_w = capture_width();
     const uint src_h = capture_height();
     if (!src_w || !src_h) return;
 
-    const bool mono = video_fb_bpp() == 2;
-    if (mono && !blut_ready)  build_blut();
-    if (!mono && !clut_ready) build_clut();
+    const uint bits = source_active()->data_bits;       // 2 MDA, 4 RGBI, 6 EGA
+    const bool mono = bits == 2;
+    if (mono && !blut_ready)       build_blut();
+    if (bits == 4 && !clut_ready)  build_clut();
 
     uint32_t  *fb       = video_fb();
     const uint fb_w     = video_fb_width();
-    const uint fb_h     = video_fb_height();
     const uint fb_words = video_fb_words();
     const uint bpp      = video_fb_bpp();
     const uint ppw      = 32u / bpp;                    // fb pixels per word
-    const uint spb      = mono ? 4u : 2u;               // source pixels per byte
-    const uint8_t *map  = mono ? level : video_cga_rgb222();
+    const uint8_t *map  = mono ? level : bits == 4 ? video_cga_rgb222()
+                                                   : video_ega_rgb222();
+    const int  lines    = (int)video_lines();
     const int  vs       = (int)g_vscale;
 
     // Centred on the card's active width, not the measured one: that one
     // includes blanking and moves with bp.
     // Negative border = source bigger than the canvas = crop.
     const int h_border = ((int)fb_w - (int)source_active()->active_w) / 2 + g_hpos;
-    const int v_border = ((int)fb_h - (int)src_h * vs) / 2 + g_vpos * vs;
 
-    const bool fast = h_border <= 0 && ((-h_border) % (int)spb) == 0
-                      && (uint)(-h_border) + fb_w <= src_w;
+    // One stored row per source line; core1 repeats each vs times and blacks
+    // out the rest. If not every line can be stored, vpos picks which ones and
+    // the image stays centred; otherwise vpos moves the image.
+    int n = (int)src_h;
+    if (n > lines / vs)             n = lines / vs;
+    if (n > (int)video_fb_rows())   n = (int)video_fb_rows();
+    const int row_slack  = lines - n * vs;
+    const int line_slack = (int)src_h - n;
+    int first_row  = row_slack / 2;
+    int first_line = 0;
+    if (line_slack > 0)
+        first_line = clampi(line_slack / 2 - g_vpos, 0, line_slack);
+    else
+        first_row  = clampi(row_slack / 2 + g_vpos * vs, 0, row_slack);
+
+    const uint spb   = 8u / bits;                        // source pixels per byte
+    const bool fast  = bits != 6 && h_border <= 0 && ((-h_border) % (int)spb) == 0
+                       && (uint)(-h_border) + fb_w <= src_w;
+    const bool word5 = bits == 6 && h_border == 0 && fb_w <= src_w
+                       && fb_words % 5 == 0;
 
     static uint8_t src_row[CAPTURE_MAX_WIDTH];
-    int prev = -1;
 
-    for (uint r = 0; r < fb_h; r++) {
-        uint32_t *fb_line = &fb[r * fb_words];
-        const int d    = (int)r - v_border;
-        const int line = d < 0 ? -1 : d / vs;
-
-        if (line < 0 || line >= (int)src_h) {
-            memset(fb_line, 0, fb_words * 4);
-            prev = -1;
+    for (int i = 0; i < n; i++) {
+        uint32_t  *fb_line = &fb[(uint)i * fb_words];
+        const uint line    = (uint)(first_line + i);
+        if (word5) {
+            // 5 samples per source word at bits 2, 8, 14, 20, 26; 4 pixels per
+            // fb word. 4 source words fill 5 fb words.
+            const uint32_t *p = (const uint32_t *)capture_raw_line(line);
+            #define S(d, sh) ((uint32_t)map[((d) >> (sh)) & 63u])
+            for (uint b = 0; b < fb_words; b += 5, p += 4) {
+                const uint32_t d0 = p[0], d1 = p[1], d2 = p[2], d3 = p[3];
+                fb_line[b + 0] = S(d0, 2)  | S(d0, 8)  << 8 | S(d0, 14) << 16 | S(d0, 20) << 24;
+                fb_line[b + 1] = S(d0, 26) | S(d1, 2)  << 8 | S(d1, 8)  << 16 | S(d1, 14) << 24;
+                fb_line[b + 2] = S(d1, 20) | S(d1, 26) << 8 | S(d2, 2)  << 16 | S(d2, 8)  << 24;
+                fb_line[b + 3] = S(d2, 14) | S(d2, 20) << 8 | S(d2, 26) << 16 | S(d3, 2)  << 24;
+                fb_line[b + 4] = S(d3, 8)  | S(d3, 14) << 8 | S(d3, 20) << 16 | S(d3, 26) << 24;
+            }
+            #undef S
             continue;
         }
-        if (line == prev) {
-            memcpy(fb_line, fb_line - fb_words, fb_words * 4);
-            continue;
-        }
-        prev = line;
         if (fast) {
-            const uint8_t *b = capture_raw_line((uint)line) + (uint)(-h_border) / spb;
+            const uint8_t *b = capture_raw_line(line) + (uint)(-h_border) / spb;
             if (mono) {
                 for (uint w = 0; w < fb_words; w++, b += 4)
                     fb_line[w] = (uint32_t)blut[b[0]]
@@ -118,16 +145,18 @@ void __not_in_flash_func(view_render)(void)
             continue;
         }
 
-        capture_get_line((uint)line, src_row);
+        capture_get_line(line, src_row);
 
         for (uint w = 0; w < fb_words; w++) {
             uint32_t word = 0;
-            for (uint i = 0; i < ppw; i++) {
-                const int k = (int)(w * ppw + i) - h_border;
+            for (uint j = 0; j < ppw; j++) {
+                const int k = (int)(w * ppw + j) - h_border;
                 const uint v = (k >= 0 && k < (int)src_w) ? map[src_row[k]] : 0;
-                word |= v << (bpp * i);
+                word |= v << (bpp * j);
             }
             fb_line[w] = word;
         }
     }
+
+    video_set_vmap((uint)first_row, (uint)vs, (uint)n);
 }
