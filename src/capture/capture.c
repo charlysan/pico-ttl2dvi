@@ -212,9 +212,11 @@ bool capture_grab(void)
                       - (uintptr_t)rawbuf) / 4;
         if (w >= g_lines_prev * g_words_per_line) capture_hold();
     }
+    // Same order as the re-arm below (edge, measure, arm), so a frame started
+    // here begins on the same line as one started there.
     if (!g_armed) {
-        if (!fit_sampling()) return false;
         if (!wait_vsync(true) || !wait_vsync(false)) return false;
+        if (!fit_sampling()) return false;
         arm();
     }
     g_armed = false;
