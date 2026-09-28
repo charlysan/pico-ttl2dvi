@@ -1,6 +1,7 @@
 #ifndef TTL2DVI_SOURCE_H
 #define TTL2DVI_SOURCE_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "pico/types.h"   // uint
 
@@ -43,5 +44,9 @@ void source_select(uint i);
 // reconfigure capture and view around it.
 int  source_ega_check(uint32_t line_cycles);
 void source_ega_select(uint variant);
+
+// False when the measured line rate doesn't belong to the running source
+// (only sources with an hsync_hz, i.e. EGA): the frame is the wrong family.
+bool source_line_ok(uint32_t line_cycles);
 
 #endif

@@ -136,6 +136,19 @@ void source_select(uint i)
 // A rate matching neither decides nothing.
 #define EGA_DEBOUNCE 8
 
+static bool rate_matches(uint32_t line_cycles, uint32_t want)
+{
+    if (!line_cycles) return false;
+    const uint32_t hz = clock_get_hz(clk_sys) / line_cycles;
+    return hz * 20 >= want * 19 && hz * 20 <= want * 21;
+}
+
+bool source_line_ok(uint32_t line_cycles)
+{
+    const uint32_t want = sources[g_active]->hsync_hz;
+    return !want || rate_matches(line_cycles, want);
+}
+
 int source_ega_check(uint32_t line_cycles)
 {
     static int  cand = -1;
@@ -143,12 +156,9 @@ int source_ega_check(uint32_t line_cycles)
 
     if (sources[g_active] != &s_ega || !line_cycles) return -1;
 
-    const uint32_t hz = clock_get_hz(clk_sys) / line_cycles;
     int match = -1;
-    for (uint i = 0; i < EGA_VARIANTS; i++) {
-        const uint32_t want = ega_variants[i]->hsync_hz;
-        if (hz * 20 >= want * 19 && hz * 20 <= want * 21) match = (int)i;
-    }
+    for (uint i = 0; i < EGA_VARIANTS; i++)
+        if (rate_matches(line_cycles, ega_variants[i]->hsync_hz)) match = (int)i;
     if (match < 0 || match == (int)s_ega_var) { run = 0; return -1; }
 
     if (match != cand) { cand = match; run = 0; }
