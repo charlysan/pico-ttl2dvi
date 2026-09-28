@@ -10,6 +10,8 @@
 #include "video.h"
 #include "source.h"
 #include "view.h"
+#include "sigcheck.h"
+#include "detect.h"
 
 // --- diagnostics ---
 void cmd_version(int argc, char **argv) {
@@ -22,7 +24,7 @@ void cmd_status(int argc, char **argv) {
     uint32_t f = clock_get_hz(clk_sys);
     uint32_t pulse;
     uint32_t ph = sync_hsync(&pulse);
-    uint32_t pv = sync_vsync_period();
+    uint32_t pv = ph ? sync_vsync_period() : 0;     // no HSYNC: don't wait for VSYNC too
 
     const source_mode_t *src = source_active();
     printf("  SOURCE: %s, %u data bits, %ux\n",
@@ -65,20 +67,43 @@ void cmd_status(int argc, char **argv) {
     uint lo, hi;
     capture_lines_range(&lo, &hi);
     printf("  LINES: %u..%u\n", lo, hi);
+
+    static const char *const state[] = { "none", "unstable", "stable" };
+    signal_info_t si;
+    signal_get(&si);
+    if (si.state == SIGNAL_NONE)
+        printf("  SIGNAL: none\n");
+    else
+        printf("  SIGNAL: %s, %s group, %lu Hz / %lu.%02lu Hz, %lu.%lu s\n",
+               state[si.state], signal_group_name(si.group),
+               (unsigned long)si.hsync_hz,
+               (unsigned long)(si.vsync_mhz / 1000u), (unsigned long)(si.vsync_mhz % 1000u / 10u),
+               (unsigned long)(si.ms / 1000u), (unsigned long)(si.ms % 1000u / 100u));
 }
 
 void cmd_source(int argc, char **argv) {
-    if (argc >= 2) {
+    if (argc >= 2 && !strcmp(argv[1], "auto")) {
+        if (argc >= 3 && !strcmp(argv[2], "on")) {
+            source_set_auto(true);
+            auto_kick();
+        } else if (argc >= 3 && !strcmp(argv[2], "off")) {
+            source_set_auto(false);
+        } else {
+            printf("source auto on|off\n");
+        }
+    } else if (argc >= 2) {
         char *end;
         long i = strtol(argv[1], &end, 10);
         if (*end || i < 0 || (uint)i >= source_count()) {
             printf("no such source: %s\n", argv[1]);
         } else {
+            source_set_auto(false);
             printf("switching to %s (reboot)...\n", source_get((uint)i)->name);
             sleep_ms(50);
             source_select((uint)i);
         }
     }
+    printf("  auto detection: %s\n", source_auto() ? "on" : "off");
     for (uint i = 0; i < source_count(); i++) {
         const source_mode_t *s = source_get(i);
         printf("  %u  %-6s %u data bits @ GP%u, %u px, %u.%03u MHz dot%s, sysclk %u",
@@ -87,7 +112,7 @@ void cmd_source(int argc, char **argv) {
                i == source_active_index() && capture_oversample() > 1 ? " (2x)" : "",
                s->sysclk_khz / 1000u);
         if (s->sysclk_khz % 1000u) printf(".%u", (s->sysclk_khz % 1000u) / 100u);
-        printf(" MHz%s%s\n", s->hsync_hz ? ", auto" : "",
+        printf(" MHz%s%s\n", s->id == SRC_ID_EGA ? ", both families" : "",
                i == source_active_index() ? "   <- current" : "");
     }
 }
@@ -169,6 +194,86 @@ void cmd_dotclock(int argc, char **argv) {
     if (d100) printf("  at 1x a pixel would slip every %lu px\n",
                      (unsigned long)(r100 / d100));
     else      printf("  at 1x no slip\n");
+}
+
+void cmd_measure(int argc, char **argv) {
+    printf("measure: measuring...\n");
+    fflush(stdout);
+    capture_measure_t m;
+    const source_mode_t *src = source_active();
+    const uint cur = capture_dot_hz();
+    const uint64_t t0 = time_us_64();
+    const bool ok = capture_measure_dot(argc >= 2 ? (uint)atoi(argv[1]) : 80u,
+                                        src->data_base, src->data_bits,
+                                        cur / 100u * 95u, cur / 100u * 105u, &m);
+    const uint ms = (uint)((time_us_64() - t0) / 1000u);
+    if (!m.lines) { printf("measure: no sync signal\n"); return; }
+    if (!ok) {
+        printf("measure: %u edges in %u lines, too few (put text or a pattern on "
+               "screen, or try another skip)\n", m.edges, m.lines);
+        return;
+    }
+    const uint char_px = source_active()->data_bits == 2 ? 9u : 8u;
+    const uint chars = (uint)(m.h_total / (float)char_px + 0.5f);
+    const uint dot = capture_dot_hz();
+    const int ppm = (int)(((int64_t)m.dot_hz - dot) * 1000000 / dot);
+    printf("measure: %u edges in %u lines, %u ms\n", m.edges, m.lines, ms);
+    printf("  dot clock %u.%04u MHz (period %u.%04u sysclk), alignment %u.%03u\n",
+           m.dot_hz / 1000000u, (m.dot_hz / 100u) % 10000u,
+           (uint)m.period, (uint)((m.period - (uint)m.period) * 10000.0f),
+           (uint)m.align, (uint)(m.align * 1000.0f) % 1000u);
+    printf("  h_total %u.%u px ~ %u chars of %u\n",
+           (uint)m.h_total, (uint)((m.h_total - (uint)m.h_total) * 10.0f), chars, char_px);
+    printf("  current dotclock %u.%04u MHz: %+d ppm\n",
+           dot / 1000000u, (dot / 100u) % 10000u, ppm);
+    if (m.align < 0.5f)
+        printf("  low alignment: no real match within +/-5%% of the current dotclock;"
+               " try detect, or dotclock near the card's clock first\n");
+}
+
+// What source auto detection would choose, and why. Changes nothing.
+void cmd_detect(int argc, char **argv) {
+    (void)argc; (void)argv;
+    detect_result_t r;
+    detect_run(&r);
+    if (r.status == DETECT_NO_SIGNAL) {
+        printf("detect: no stable signal, nothing to decide\n");
+        return;
+    }
+
+    printf("detect: %lu Hz, %u candidate%s\n",
+           (unsigned long)r.hsync_hz, r.ncand, r.ncand == 1 ? "" : "s");
+    for (uint i = 0; i < r.ncand; i++) {
+        const source_mode_t *m = r.cand[i].mode;
+        printf("  %-5s %u-bit  %u.%04u MHz\n", m->name, m->data_bits,
+               m->dot_hz / 1000000u, (m->dot_hz / 100u) % 10000u);
+    }
+    if (r.measured)
+        printf("  measured %u.%04u MHz, alignment %u.%03u\n",
+               r.m.dot_hz / 1000000u, (r.m.dot_hz / 100u) % 10000u,
+               (uint)r.m.align, (uint)(r.m.align * 1000.0f) % 1000u);
+
+    switch (r.status) {
+    case DETECT_UNKNOWN:
+        printf("detect: no known source at this line rate\n");
+        break;
+    case DETECT_NO_EDGES:
+        printf("detect: can't measure the dot clock (%u edges); would keep %s\n",
+               r.m.edges, source_active()->name);
+        break;
+    case DETECT_UNCLEAR:
+        printf("detect: the edges don't line up at any candidate's clock; would keep %s\n",
+               source_active()->name);
+        break;
+    case DETECT_NO_MATCH:
+        printf("detect: no candidate close enough; would keep %s\n", source_active()->name);
+        break;
+    default: {
+        const source_cand_t *c = &r.cand[r.pick];
+        printf("detect: %s (%u-bit)%s\n", c->mode->name, c->mode->data_bits,
+               c->index == source_active_index() ? ", already selected" : ", would switch");
+    }
+    }
 }
 
 void cmd_fastcap(int argc, char **argv) {

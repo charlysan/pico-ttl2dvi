@@ -40,4 +40,17 @@ const uint8_t *capture_raw_line(uint line);      // packed samples, LSB first
 void capture_hold(void);                         // stop the sampler; next grab re-syncs
 void capture_dump_frame(void);
 void capture_dump_fast(uint skip);               // for tools/autotune.py
+
+// Dot clock measured from pixel edges in a fast capture (see autotune), on data
+// pins base..base+bits-1, searched between lo_hz and hi_hz. Needs content with
+// vertical edges; false = no signal or too few edges.
+typedef struct {
+    uint  lines, edges;
+    float period;       // sysclk per pixel
+    uint  dot_hz;
+    float align;        // 0..1: how tightly the edges line up at that period
+    float h_total;      // line period / pixel period, in pixels
+} capture_measure_t;
+bool capture_measure_dot(uint skip, uint base, uint bits,
+                         uint lo_hz, uint hi_hz, capture_measure_t *m);
 #endif

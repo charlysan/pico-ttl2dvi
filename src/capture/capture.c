@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
@@ -108,32 +109,38 @@ static bool derive_rate(uint dot_hz)
     return true;
 }
 
+// Data pins and sample width. The SM must be stopped; patch_sample_loop()
+// must follow, since the loop's `in pins, N` carries the width.
+static void set_pins(uint base, uint bits)
+{
+    g_bits  = bits;
+    g_spw   = 32u / bits;
+    g_shift = 32u - g_spw * bits;
+
+    for (uint i = 0; i < bits; i++)
+        pio_gpio_init(pio, base + i);
+    pio_sm_set_consecutive_pindirs(pio, sm, base, bits, false);
+
+    pio_sm_config c = capture_program_get_default_config(prog_off);
+    sm_config_set_in_pins(&c, base);
+    // Right shift, autopush at a whole number of samples: 32 bits, or 30 at
+    // 6 bits, which leaves the samples in the top 30 bits of each word.
+    sm_config_set_in_shift(&c, true, true, g_spw * bits);
+    sm_config_set_clkdiv(&c, PIO_CLKDIV);
+    pio_sm_init(pio, sm, prog_off, &c);               // left disabled
+}
+
 // Everything that depends on the active source. The SM must be stopped.
 static void apply_source(void)
 {
     const source_mode_t *src = source_active();
 
-    g_bits     = src->data_bits;
-    g_spw      = 32u / g_bits;
-    g_shift    = 32u - g_spw * g_bits;
     g_active_w = src->active_w;
+    set_pins(src->data_base, src->data_bits);
     derive_rate(src->dot_hz);
     g_bp       = (uint)src->def_bp;
     g_phase    = (uint)src->def_phase;
-
     patch_sample_loop();
-
-    for (uint i = 0; i < g_bits; i++)
-        pio_gpio_init(pio, src->data_base + i);
-    pio_sm_set_consecutive_pindirs(pio, sm, src->data_base, g_bits, false);
-
-    pio_sm_config c = capture_program_get_default_config(prog_off);
-    sm_config_set_in_pins(&c, src->data_base);
-    // Right shift, autopush at a whole number of samples: 32 bits, or 30 at
-    // 6 bits, which leaves the samples in the top 30 bits of each word.
-    sm_config_set_in_shift(&c, true, true, g_spw * g_bits);
-    sm_config_set_clkdiv(&c, PIO_CLKDIV);
-    pio_sm_init(pio, sm, prog_off, &c);               // left disabled
 }
 
 void capture_reconfigure(void)
@@ -293,16 +300,26 @@ void capture_get_line(uint line, uint8_t *dst)
 #define FAST_CYC         2u       // sysclk per sample in fastcap
 #define FAST_MAX_SAMPLES 8192u
 
-// One sample every FAST_CYC sysclk, same window start as normal capture (same
-// bp, phase 0), for as many lines as rawbuf holds, starting skip lines after
-// the VSYNC edge. For tools/autotune.py: pixel edges timed to FAST_CYC.
-void capture_dump_fast(uint skip)
+// What a fast grab left in rawbuf, and its sample format.
+typedef struct {
+    uint lines, samples, words;
+    uint bits, spw, shift;
+    uint32_t delay;
+} fast_t;
+
+// One sample every FAST_CYC sysclk from data pins base..base+bits-1, same
+// window start as normal capture (same bp, phase 0), for as many lines as
+// rawbuf holds, starting skip lines after the VSYNC edge: pixel edges timed to
+// FAST_CYC. Normal capture settings are restored before returning.
+static bool fast_grab(uint skip, uint base, uint bits, fast_t *f)
 {
+    const source_mode_t *src = source_active();
     capture_hold();
     pio_sm_clear_fifos(pio, sm);
 
     const uint cyc = g_cyc, phase = g_phase;
     const uint32_t spp = g_spp;
+    set_pins(base, bits);
     g_cyc   = FAST_CYC;
     g_spp   = (uint32_t)(((uint64_t)spp * cyc) / FAST_CYC);
     g_phase = 0;
@@ -310,7 +327,7 @@ void capture_dump_fast(uint skip)
     patch_sample_loop();
 
     bool ok = wait_vsync(true) && wait_vsync(false) && fit_sampling();
-    uint lines = 0;
+    f->lines = 0;
     if (ok) {
         const uint32_t mhz = clock_get_hz(clk_sys) / 1000000u;
         busy_wait_us((uint64_t)skip * g_line_cyc / mhz);
@@ -322,21 +339,40 @@ void capture_dump_fast(uint skip)
         dma_channel_abort(dma_chan);
         uint32_t written = (dma_channel_hw_addr(dma_chan)->write_addr
                             - (uintptr_t)rawbuf) / 4;
-        lines = written / g_words_per_line;
+        f->lines = written / g_words_per_line;
     }
-    const uint samples = g_samples_per_line, words = g_words_per_line;
-    const uint32_t delay = g_delay;
+    f->samples = g_samples_per_line;
+    f->words   = g_words_per_line;
+    f->delay   = g_delay;
+    f->bits    = g_bits;
+    f->spw     = g_spw;
+    f->shift   = g_shift;
 
+    set_pins(src->data_base, src->data_bits);
     g_cyc = cyc;
     g_spp = spp;
     g_phase = phase;
     g_max_samples = CAPTURE_MAX_SAMPLES;
     patch_sample_loop();
+    return ok && f->lines;
+}
 
-    if (!ok || !lines) {
+static inline uint fast_sample(const fast_t *f, const uint32_t *line, uint s)
+{
+    return (line[s / f->spw] >> (f->shift + (s % f->spw) * f->bits)) & ((1u << f->bits) - 1u);
+}
+
+// For tools/autotune.py.
+void capture_dump_fast(uint skip)
+{
+    const source_mode_t *src = source_active();
+    fast_t f;
+    if (!fast_grab(skip, src->data_base, src->data_bits, &f)) {
         printf("fastcap: no sync signal\n");
         return;
     }
+    const uint lines = f.lines, samples = f.samples, words = f.words;
+    const uint32_t delay = f.delay;
 
     printf("@@@BEGIN\n");
     printf("FAST SYSCLK %lu LINE %lu PULSE %lu BP %u DELAY %lu CYC %u "
@@ -345,13 +381,12 @@ void capture_dump_fast(uint skip)
            (unsigned long)g_pulse, g_bp, (unsigned long)delay, FAST_CYC,
            g_dot_hz, g_bits, g_active_w, skip);
     printf("W %u H %u BPP %u\n", samples, lines, g_bits);
-    const uint32_t mask = (1u << g_bits) - 1u;
     char buf[256];
     for (uint line = 0; line < lines; line++) {
-        const uint32_t *src = &rawbuf[line * words];
+        const uint32_t *raw = &rawbuf[line * words];
         uint n = 0;
         for (uint s = 0; s < samples; s++) {
-            buf[n++] = ALPHABET[(src[s / g_spw] >> (g_shift + (s % g_spw) * g_bits)) & mask];
+            buf[n++] = ALPHABET[fast_sample(&f, raw, s)];
             if (n == sizeof buf) { fwrite(buf, 1, n, stdout); n = 0; }
         }
         buf[n++] = '\n';
@@ -359,6 +394,79 @@ void capture_dump_fast(uint skip)
     }
     printf("@@@END\n");
     fflush(stdout);
+}
+
+// Dot clock from pixel edges, as tools/autotune.py does it: every transition
+// sits at t0 + k * P, so search P for the tightest alignment of edge times
+// modulo P. Alignment = length of the mean unit vector of the edge phases,
+// with the phase quantised to 256 steps and cos/sin from a Q14 table.
+#define MEASURE_EDGES 8192u
+static uint16_t s_edges[MEASURE_EDGES];
+static int16_t  s_cos[256], s_sin[256];
+
+static float alignment(uint n, float P)
+{
+    const float k = 256.0f / P;
+    int32_t c = 0, s = 0;
+    for (uint i = 0; i < n; i++) {
+        const uint a = (uint)((float)s_edges[i] * k) & 255u;
+        c += s_cos[a];
+        s += s_sin[a];
+    }
+    return sqrtf((float)c * (float)c + (float)s * (float)s) / ((float)n * 16384.0f);
+}
+
+bool capture_measure_dot(uint skip, uint base, uint bits,
+                         uint lo_hz, uint hi_hz, capture_measure_t *m)
+{
+    if (!s_cos[0])
+        for (uint a = 0; a < 256; a++) {
+            s_cos[a] = (int16_t)(cosf(a * 6.2831853f / 256.0f) * 16384.0f);
+            s_sin[a] = (int16_t)(sinf(a * 6.2831853f / 256.0f) * 16384.0f);
+        }
+
+    fast_t f;
+    m->edges = 0;
+    const bool got = fast_grab(skip, base, bits, &f);
+    m->lines = got ? f.lines : 0;
+    if (!got) return false;
+
+    // Transition between samples s-1 and s: at FAST_CYC * s - FAST_CYC / 2.
+    uint n = 0;
+    for (uint line = 0; line < f.lines && n < MEASURE_EDGES; line++) {
+        const uint32_t *raw = &rawbuf[line * f.words];
+        uint prev = fast_sample(&f, raw, 0);
+        for (uint s = 1; s < f.samples && n < MEASURE_EDGES; s++) {
+            const uint v = fast_sample(&f, raw, s);
+            if (v != prev) s_edges[n++] = (uint16_t)(FAST_CYC * s - FAST_CYC / 2);
+            prev = v;
+        }
+    }
+    m->edges = n;
+    if (n < 200) return false;
+
+    // Coarse to fine over the period range for lo_hz..hi_hz.
+    const float sys = (float)clock_get_hz(clk_sys);
+    float best_p = sys / (float)hi_hz, best_r = 0.0f;
+    float lo = sys / (float)hi_hz, hi = sys / (float)lo_hz, step = 0.005f;
+    // The coarse round only has to find the neighbourhood: 2048 edges do.
+    for (uint round = 0; round < 3; round++) {
+        const uint use = round == 0 && n > 2048u ? 2048u : n;
+        best_r = 0.0f;
+        for (float P = lo; P <= hi; P += step) {
+            const float r = alignment(use, P);
+            if (r > best_r) { best_r = r; best_p = P; }
+        }
+        lo = best_p - 4.0f * step;
+        hi = best_p + 4.0f * step;
+        step /= 10.0f;
+    }
+
+    m->period    = best_p;
+    m->align     = best_r;
+    m->dot_hz    = (uint)(sys / best_p + 0.5f);
+    m->h_total   = (float)g_line_cyc / best_p;
+    return true;
 }
 
 void capture_dump_frame(void)

@@ -21,7 +21,8 @@ typedef struct {
     int         def_bp;
     int         def_phase;
     uint        def_vscale;  // display lines per source line
-    uint        hsync_hz;    // EGA variants only: the line rate that selects it
+    uint        hsync_hz;    // expected line rate: detection, and frames at
+                             // another rate aren't rendered
 } source_mode_t;
 
 // Call first in main(): resolves the active source before the overclock.
@@ -35,6 +36,12 @@ uint source_active_index(void);
 // Switching reboots; the choice survives in watchdog scratch[5].
 void source_select(uint i);
 
+// Auto detection (apps/ttl2dvi/detect.c) on/off, in scratch[6]. It survives
+// warm reboots, including the ones auto detection makes; a power cycle
+// clears it.
+bool source_auto(void);
+void source_set_auto(bool on);
+
 // EGA runs one of two variants (350-line / 200-line families) and follows the
 // card live, without a reboot. Call source_ega_check() after every grab with
 // the measured line period: it returns the variant to switch to, or -1.
@@ -43,8 +50,16 @@ void source_select(uint i);
 int  source_ega_check(uint32_t line_cycles);
 void source_ega_select(uint variant);
 
-// False when the measured line rate doesn't belong to the running source
-// (only sources with an hsync_hz, i.e. EGA): the frame is the wrong family.
+// False when the measured line rate isn't within 5% of the running source's
+// hsync_hz: the frame is from another source or EGA family.
 bool source_line_ok(uint32_t line_cycles);
+
+// Sources whose line rate is within 3% of hsync_hz; EGA's two families are
+// listed separately (same index, different mode). Returns how many.
+typedef struct {
+    uint                 index;     // for source_get() / source_select()
+    const source_mode_t *mode;      // the variant, for EGA
+} source_cand_t;
+uint source_candidates(uint32_t hsync_hz, source_cand_t *out, uint max);
 
 #endif

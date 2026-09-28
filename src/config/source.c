@@ -13,11 +13,13 @@ static const source_mode_t src_mda16 = {
     .data_bits  = 2,
     .dot_hz     = 16000000,
     .def_bp     = 16,
-    .def_phase  = 0,
+    .def_phase  = 2,
     .def_vscale = 1,
+    .hsync_hz   = 18155,
 };
 
-// CGA, 14.3333 MHz dot clock: 258 MHz = 18 sysclk per pixel.
+// CGA, 14.3226 MHz dot clock (measured): 258 MHz = 18.013 sysclk per pixel,
+// close enough to 18 for one sample per pixel.
 // 320-wide modes arrive sampled twice per pixel, so every mode is 640 wide.
 static const source_mode_t src_cga = {
     .id         = SRC_ID_CGA,
@@ -26,10 +28,11 @@ static const source_mode_t src_cga = {
     .active_w   = 640,
     .data_base  = 21,        // I, R, G, B
     .data_bits  = 4,
-    .dot_hz     = 14333333,
+    .dot_hz     = 14322600,
     .def_bp     = 120,
-    .def_phase  = 4,
+    .def_phase  = 2,
     .def_vscale = 2,
+    .hsync_hz   = 15709,
 };
 
 // Commodore 128 80-column VDC: same RGBI lines and colours as CGA, own 16.000
@@ -42,9 +45,10 @@ static const source_mode_t src_c128 = {
     .data_base  = 21,        // I, R, G, B
     .data_bits  = 4,
     .dot_hz     = 16000000,
-    .def_bp     = 130,
-    .def_phase  = 4,
+    .def_bp     = 180,
+    .def_phase  = 10,
     .def_vscale = 2,
+    .hsync_hz   = 15752,
 };
 
 // EGA, 350-line family (21.98 kHz): 640x350 graphics and 80x25 text. All six
@@ -118,6 +122,17 @@ const source_mode_t *source_get(uint i)   { return i < SOURCE_COUNT ? sources[i]
 const source_mode_t *source_active(void)  { return sources[g_active]; }
 uint source_active_index(void)            { return g_active; }
 
+// Auto detection on/off, in scratch[6]; survives the reboots it causes.
+#define AUTO_SCRATCH 6
+#define AUTO_MAGIC   0xa0707a01u
+
+bool source_auto(void) { return watchdog_hw->scratch[AUTO_SCRATCH] == AUTO_MAGIC; }
+
+void source_set_auto(bool on)
+{
+    watchdog_hw->scratch[AUTO_SCRATCH] = on ? AUTO_MAGIC : 0;
+}
+
 void source_select(uint i)
 {
     if (i >= SOURCE_COUNT) return;
@@ -167,4 +182,23 @@ void source_ega_select(uint variant)
     if (variant >= EGA_VARIANTS) return;
     s_ega = *ega_variants[variant];
     s_ega_var = variant;
+}
+
+// Every source (each EGA variant separately) whose line rate is within 3%.
+#define CAND_TOL_PCT 3u
+
+uint source_candidates(uint32_t hsync_hz, source_cand_t *out, uint max)
+{
+    uint n = 0;
+    for (uint i = 0; i < SOURCE_COUNT; i++) {
+        const bool ega = sources[i] == &s_ega;
+        const uint k = ega ? EGA_VARIANTS : 1u;
+        for (uint v = 0; v < k && n < max; v++) {
+            const source_mode_t *m = ega ? ega_variants[v] : sources[i];
+            const uint32_t tol = m->hsync_hz * CAND_TOL_PCT / 100u;
+            if (hsync_hz + tol >= m->hsync_hz && hsync_hz <= m->hsync_hz + tol)
+                out[n++] = (source_cand_t){ i, m };
+        }
+    }
+    return n;
 }

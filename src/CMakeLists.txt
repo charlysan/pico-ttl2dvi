@@ -3,6 +3,7 @@ add_library(ttl2dvi_core STATIC
     config/source.c
     capture/sync.c
     capture/capture.c
+    capture/sigcheck.c
     video/video.c
     view/view.c
 )
