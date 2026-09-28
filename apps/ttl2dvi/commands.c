@@ -79,9 +79,16 @@ void cmd_source(int argc, char **argv) {
             source_select((uint)i);
         }
     }
-    for (uint i = 0; i < source_count(); i++)
-        printf("  %u  %s%s\n", i, source_get(i)->name,
+    for (uint i = 0; i < source_count(); i++) {
+        const source_mode_t *s = source_get(i);
+        printf("  %u  %-6s %u data bits @ GP%u, %u px, %u.%03u MHz dot%s, sysclk %u",
+               i, s->name, s->data_bits, s->data_base, s->active_w,
+               s->dot_hz / 1000000u, (s->dot_hz / 1000u) % 1000u,
+               s->oversample > 1 ? " (2x)" : "", s->sysclk_khz / 1000u);
+        if (s->sysclk_khz % 1000u) printf(".%u", (s->sysclk_khz % 1000u) / 100u);
+        printf(" MHz%s%s\n", s->hsync_hz ? ", auto" : "",
                i == source_active_index() ? "   <- current" : "");
+    }
 }
 
 void cmd_mode(int argc, char **argv) {
