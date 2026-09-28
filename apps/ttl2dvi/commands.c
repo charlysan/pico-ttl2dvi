@@ -26,7 +26,7 @@ void cmd_status(int argc, char **argv) {
 
     const source_mode_t *src = source_active();
     printf("  SOURCE: %s, %u data bits, %ux\n",
-           src->name, src->data_bits, src->oversample);
+           src->name, src->data_bits, capture_oversample());
     printf("  SYSCLK: %lu.%03lu MHz\n",
            (unsigned long)(f / 1000000),
            (unsigned long)((f / 1000) % 1000));
@@ -84,7 +84,8 @@ void cmd_source(int argc, char **argv) {
         printf("  %u  %-6s %u data bits @ GP%u, %u px, %u.%03u MHz dot%s, sysclk %u",
                i, s->name, s->data_bits, s->data_base, s->active_w,
                s->dot_hz / 1000000u, (s->dot_hz / 1000u) % 1000u,
-               s->oversample > 1 ? " (2x)" : "", s->sysclk_khz / 1000u);
+               i == source_active_index() && capture_oversample() > 1 ? " (2x)" : "",
+               s->sysclk_khz / 1000u);
         if (s->sysclk_khz % 1000u) printf(".%u", (s->sysclk_khz % 1000u) / 100u);
         printf(" MHz%s%s\n", s->hsync_hz ? ", auto" : "",
                i == source_active_index() ? "   <- current" : "");
@@ -154,19 +155,20 @@ void cmd_dotclock(int argc, char **argv) {
     const uint dot = capture_dot_hz();
     const uint32_t spp = capture_spp();
     const uint64_t px100 = (uint64_t)clock_get_hz(clk_sys) * 100u / dot;
-    printf("dotclock = %u.%03u MHz%s: %lu.%02lu sysclk/px, sample every %u, spp %lu.%04lu\n",
+    printf("dotclock = %u.%03u MHz%s: %lu.%02lu sysclk/px, sample every %u (%ux), spp %lu.%04lu\n",
            dot / 1000000u, (dot / 1000u) % 1000u,
            dot == source_active()->dot_hz ? " (default)" : "",
            (unsigned long)(px100 / 100u), (unsigned long)(px100 % 100u),
-           capture_sample_cyc(),
+           capture_sample_cyc(), capture_oversample(),
            (unsigned long)(spp >> 16), (unsigned long)(((spp & 0xffffu) * 10000u) >> 16));
 
-    // At 1x a whole pixel is skipped or repeated every 0.5 / |spp - 1| px.
-    if (source_active()->oversample == 1) {
-        const uint32_t d = spp > 0x10000u ? spp - 0x10000u : 0x10000u - spp;
-        if (d) printf("  1x: a pixel slips every %lu px\n", (unsigned long)(0x8000u / d));
-        else   printf("  1x: no slip\n");
-    }
+    // At 1x a whole pixel would be skipped or repeated every
+    // 1 / |px / round(px) - 1| px, the first at half that.
+    const uint64_t r100 = (px100 + 50u) / 100u * 100u;
+    const uint64_t d100 = px100 > r100 ? px100 - r100 : r100 - px100;
+    if (d100) printf("  at 1x a pixel would slip every %lu px\n",
+                     (unsigned long)(r100 / d100));
+    else      printf("  at 1x no slip\n");
 }
 
 void cmd_scanlines(int argc, char **argv) {

@@ -18,8 +18,6 @@ typedef struct {
     uint        data_base;   // first data GPIO
     uint        data_bits;   // data lines sampled: 2, 4 or 6
     uint        dot_hz;      // pixel clock
-    uint        oversample;  // samples per pixel: 1, or 2 when sysclk / dot_hz
-                             // is too far from an integer
     int         def_bp;
     int         def_phase;
     uint        def_vscale;  // display lines per source line

@@ -12,7 +12,6 @@ static const source_mode_t src_mda16 = {
     .data_base  = 20,        // VIDEO, INTENSITY
     .data_bits  = 2,
     .dot_hz     = 16000000,
-    .oversample = 1,
     .def_bp     = 16,
     .def_phase  = 0,
     .def_vscale = 1,
@@ -28,7 +27,6 @@ static const source_mode_t src_cga = {
     .data_base  = 21,        // I, R, G, B
     .data_bits  = 4,
     .dot_hz     = 14333333,
-    .oversample = 1,
     .def_bp     = 120,
     .def_phase  = 4,
     .def_vscale = 2,
@@ -44,7 +42,6 @@ static const source_mode_t src_c128 = {
     .data_base  = 21,        // I, R, G, B
     .data_bits  = 4,
     .dot_hz     = 16000000,
-    .oversample = 1,
     .def_bp     = 130,
     .def_phase  = 4,
     .def_vscale = 2,
@@ -61,7 +58,6 @@ static const source_mode_t ega_v350 = {
     .data_base  = 20,        // sB, sG, R, G, B, sR
     .data_bits  = 6,
     .dot_hz     = 17750000,
-    .oversample = 1,
     .def_bp     = 53,
     .def_phase  = 6,
     .def_vscale = 1,
@@ -71,8 +67,8 @@ static const source_mode_t ega_v350 = {
 // EGA, 200-line family (15.81 kHz): 320x200, 640x200 and the CGA modes. Only
 // RGBI is driven: pin 6 is INTENSITY, as on CGA. 14.156 MHz (28.322 / 2):
 // 266.4 MHz = 18.82 sysclk per pixel, too far from an integer for one sample
-// per pixel, so it samples at 2x. Same sysclk and raster as the 350 family,
-// which is what lets the two switch live.
+// per pixel, so capture samples it at 2x. Same sysclk and raster as the 350
+// family, which is what lets the two switch live.
 static const source_mode_t ega_v200 = {
     .id         = SRC_ID_EGA,
     .name       = "EGA",
@@ -81,7 +77,6 @@ static const source_mode_t ega_v200 = {
     .data_base  = 21,        // I, R, G, B
     .data_bits  = 4,
     .dot_hz     = 14156000,
-    .oversample = 2,
     .def_bp     = 85,
     .def_phase  = 6,
     .def_vscale = 2,

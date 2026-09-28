@@ -41,6 +41,7 @@ uint capture_height(void)     { return g_lines; }
 uint capture_px_cyc(void)     { return g_px_cyc; }
 uint capture_sample_cyc(void) { return g_cyc; }
 uint capture_dot_hz(void)     { return g_dot_hz; }
+uint capture_oversample(void) { return g_oversample; }
 uint32_t capture_spp(void)    { return g_spp; }
 uint32_t capture_line_cycles(void) { return g_line_cyc; }
 uint32_t capture_frames(void) { return g_frames; }
@@ -87,15 +88,23 @@ static void patch_sample_loop(void)
 // can hit exactly. spp from the unrounded ratio, so the view tracks the true
 // pixel rate across the line. False if the loop can't run that period (two
 // 5-bit delay slots: 2..64 sysclk).
+//
+// 1x slips a whole pixel every 0.5 / |px / round(px) - 1| pixels; if that lands
+// inside the captured width, sample at 2x instead. Not at 6 bits: rawbuf can't
+// hold a 2x EGA 350 frame.
 static bool derive_rate(uint dot_hz)
 {
     const float px  = (float)clock_get_hz(clk_sys) / (float)dot_hz;
-    const uint  cyc = (uint)(px / (float)g_oversample + 0.5f);
+    float err = px / (float)(uint)(px + 0.5f) - 1.0f;
+    if (err < 0.0f) err = -err;
+    const uint os  = (g_bits <= 4 && err * (float)(g_active_w + 16u) > 0.5f) ? 2u : 1u;
+    const uint cyc = (uint)(px / (float)os + 0.5f);
     if (cyc < 2 || cyc > 64) return false;
-    g_dot_hz = dot_hz;
-    g_px_cyc = (uint)(px + 0.5f);
-    g_cyc    = cyc;
-    g_spp    = (uint32_t)(px / (float)g_cyc * 65536.0f + 0.5f);
+    g_dot_hz     = dot_hz;
+    g_oversample = os;
+    g_px_cyc     = (uint)(px + 0.5f);
+    g_cyc        = cyc;
+    g_spp        = (uint32_t)(px / (float)g_cyc * 65536.0f + 0.5f);
     return true;
 }
 
@@ -104,13 +113,11 @@ static void apply_source(void)
 {
     const source_mode_t *src = source_active();
 
-    g_oversample = src->oversample;
-    derive_rate(src->dot_hz);
-
     g_bits     = src->data_bits;
     g_spw      = 32u / g_bits;
     g_shift    = 32u - g_spw * g_bits;
     g_active_w = src->active_w;
+    derive_rate(src->dot_hz);
     g_bp       = (uint)src->def_bp;
     g_phase    = (uint)src->def_phase;
 

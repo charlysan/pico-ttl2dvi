@@ -105,7 +105,7 @@ void __not_in_flash_func(view_render)(void)
     // The byte paths take sample k as pixel k, so they need one sample per
     // pixel. At 2x only the resampling loop below applies.
     const uint samples = capture_samples();
-    const bool one     = source_active()->oversample == 1;
+    const bool one     = capture_oversample() == 1;
     const uint spb     = 8u / bits;                      // source pixels per byte
     const bool fast    = one && bits != 6 && h_border <= 0
                          && ((-h_border) % (int)spb) == 0
