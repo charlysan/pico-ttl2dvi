@@ -11,6 +11,7 @@
 // Call once, after sync_init()
 void capture_init(void);
 uint capture_sample_cyc(void);                   // sysclk per sample
+uint32_t capture_frames(void);                   // frames grabbed since boot
 bool capture_grab(void); // true = got a frame, false = no sync
 void capture_set_bp(int bp);
 int  capture_get_bp(void);

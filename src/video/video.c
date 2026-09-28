@@ -60,7 +60,7 @@ static const video_mode_t mda16_modes[] = {
     { "720x576@50", &dvi_timing_720x576p_50hz,     2, 1 },
 };
 
-static const video_mode_t cga640_modes[] = {
+static const video_mode_t cga_modes[] = {
     { "640x480@60", &dvi_timing_640x480p_60hz_258, 8, 2 },
 };
 
@@ -74,7 +74,7 @@ typedef struct {
 #define MODES(m) m, sizeof m / sizeof m[0]
 static const mode_set_t mode_sets[] = {
     { SRC_ID_MDA16,  MODES(mda16_modes),  1 },
-    { SRC_ID_CGA640, MODES(cga640_modes), 0 },
+    { SRC_ID_CGA,    MODES(cga_modes),    0 },
 };
 
 // scratch[4] is off limits: watchdog_reboot() clears it.

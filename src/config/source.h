@@ -5,7 +5,7 @@
 #include "pico/types.h"   // uint
 
 #define SRC_ID_MDA16   2     // stable: stored across reboots
-#define SRC_ID_CGA640  3
+#define SRC_ID_CGA     3
 
 typedef struct {
     uint8_t     id;

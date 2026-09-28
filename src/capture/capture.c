@@ -21,6 +21,7 @@ static uint g_cyc, g_bits, g_spw;         // sysclk/sample, bits/sample, samples
 static uint g_lines, g_samples_per_line, g_words_per_line, g_delay;
 static uint g_lines_prev;
 static bool g_armed;
+static uint32_t g_frames;
 static uint g_bp;
 static uint g_phase;
 static int dma_chan;
@@ -29,6 +30,7 @@ static uint32_t rawbuf[RAW_WORDS];
 uint capture_width(void)      { return g_samples_per_line; }
 uint capture_height(void)     { return g_lines; }
 uint capture_sample_cyc(void) { return g_cyc; }
+uint32_t capture_frames(void) { return g_frames; }
 
 void capture_set_bp(int bp)
 {
@@ -188,6 +190,7 @@ bool capture_grab(void)
     uint max_lines = RAW_WORDS / g_words_per_line;
     if (g_lines > max_lines) g_lines = max_lines;
     g_lines_prev = g_lines;
+    g_frames++;
 
     // Re-arm on the edge we are standing on.
     // Do not wait for the next high->low pair

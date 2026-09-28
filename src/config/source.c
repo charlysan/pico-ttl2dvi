@@ -15,22 +15,23 @@ static const source_mode_t src_mda16 = {
     .def_phase  = 0,
 };
 
-// CGA 640x200, 14.3333 MHz dot clock: 258 MHz = 18 sysclk per pixel.
-static const source_mode_t src_cga640 = {
-    .id         = SRC_ID_CGA640,
-    .name       = "CGA640",
+// CGA, 14.3333 MHz dot clock: 258 MHz = 18 sysclk per pixel.
+// 320-wide modes arrive sampled twice per pixel, so every mode is 640 wide.
+static const source_mode_t src_cga = {
+    .id         = SRC_ID_CGA,
+    .name       = "CGA",
     .sysclk_khz = 258000,
     .active_w   = 640,
     .data_base  = 21,        // I, R, G, B
     .data_bits  = 4,
     .sample_cyc = 18,
-    .def_bp     = 112,
+    .def_bp     = 120,
     .def_phase  = 4,
 };
 
 static const source_mode_t *const sources[] = {
     &src_mda16,
-    &src_cga640,
+    &src_cga,
 };
 #define SOURCE_COUNT (sizeof sources / sizeof sources[0])
 

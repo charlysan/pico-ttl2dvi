@@ -45,6 +45,18 @@ void cmd_status(int argc, char **argv) {
     } else {
         printf("  VSYNC --\n");
     }
+
+    // Rate since the previous status call (since boot on the first).
+    static uint32_t last_frames;
+    static uint64_t last_us;
+    uint32_t frames = capture_frames();
+    uint64_t now = time_us_64();
+    uint32_t fps = (uint32_t)((uint64_t)(frames - last_frames) * 100000000u
+                              / (now - last_us));
+    printf("  CAPTURE: %lu.%02lu frames/s\n",
+           (unsigned long)(fps / 100), (unsigned long)(fps % 100));
+    last_frames = frames;
+    last_us = now;
 }
 
 void cmd_source(int argc, char **argv) {
