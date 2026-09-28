@@ -1,6 +1,7 @@
 #ifndef TTL2DVI_VIDEO_H
 #define TTL2DVI_VIDEO_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "pico/types.h"     // uint
 
@@ -28,6 +29,11 @@ uint video_lines(void);             // display lines (the mode's v_active_lines)
 // Map display lines to stored rows: line y shows row (y - first) / rep for the
 // n * rep lines from first, black elsewhere. rep is the vertical scale.
 void video_set_vmap(uint first, uint rep, uint n);
+
+// Scanlines: when rows repeat (rep > 1), the last repeat of each is black.
+// Live, no reboot.
+void video_set_scanlines(bool on);
+bool video_get_scanlines(void);
 
 // RGBI sample (I | R<<1 | G<<2 | B<<3) -> RGB222 byte, 16 entries.
 // Used by every 4-bit RGBI source (CGA, C128).

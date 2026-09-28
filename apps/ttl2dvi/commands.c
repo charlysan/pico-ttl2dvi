@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/clocks.h"
 #include "commands.h"
@@ -125,6 +126,15 @@ void cmd_vpos(int argc, char **argv) {
 void cmd_hpos(int argc, char **argv) {
     if (argc >= 2) view_set_hpos(atoi(argv[1]));
     printf("hpos = %d source px\n", view_get_hpos());
+}
+
+void cmd_scanlines(int argc, char **argv) {
+    if (argc >= 2) {
+        if (!strcmp(argv[1], "on"))       video_set_scanlines(true);
+        else if (!strcmp(argv[1], "off")) video_set_scanlines(false);
+        else printf("scanlines on|off\n");
+    }
+    printf("scanlines = %s\n", video_get_scanlines() ? "on" : "off");
 }
 
 void cmd_capture_stat(int argc, char **argv) {

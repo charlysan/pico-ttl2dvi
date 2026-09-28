@@ -170,12 +170,19 @@ void video_set_vmap(uint first, uint rep, uint n)
 }
 
 // The stored row for display line y, or the zero row.
+static volatile bool g_scanlines;
+
+void video_set_scanlines(bool on) { g_scanlines = on; }
+bool video_get_scanlines(void)    { return g_scanlines; }
+
+// With scanlines on, the last repeat of each row is black.
 static inline const uint32_t *row_for(uint y)
 {
     uint32_t m = g_vmap;
     uint first = m & 0xfffu, rep = (m >> 12) & 0xfu, n = (m >> 16) & 0xfffu;
     if (y < first || !rep) return zero_row;
-    uint r = (y - first) / rep;
+    uint d = y - first, r = d / rep;
+    if (g_scanlines && rep > 1 && d - r * rep == rep - 1) return zero_row;
     return r < n ? &framebuf[r * g_fb_words] : zero_row;
 }
 

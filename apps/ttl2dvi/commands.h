@@ -12,6 +12,7 @@ void cmd_mdalevels(int argc, char **argv);
 void cmd_vscale(int argc, char **argv);
 void cmd_vpos(int argc, char **argv);
 void cmd_hpos(int argc, char **argv);
+void cmd_scanlines(int argc, char **argv);
 
 // --- capture ---
 void cmd_capture(int argc, char **argv);

@@ -258,7 +258,9 @@ void capture_dump_frame(void)
     capture_hold();
 
     printf("@@@BEGIN\n");
-    printf("W %u H %u BPP %u\n", g_samples_per_line, g_lines, g_bits);
+    printf("W %u H %u BPP %u SPP %lu.%04lu\n", g_samples_per_line, g_lines, g_bits,
+           (unsigned long)(g_spp >> 16),
+           (unsigned long)(((g_spp & 0xffffu) * 10000u) >> 16));
     static uint8_t vals[CAPTURE_MAX_SAMPLES];
     static char    row[CAPTURE_MAX_SAMPLES + 1];
     for (uint line = 0; line < g_lines; line++) {

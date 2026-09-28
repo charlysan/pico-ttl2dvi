@@ -36,6 +36,7 @@ int main(void) {
     console_register("vscale", cmd_vscale, "vertical scale 1..4");
     console_register("vpos", cmd_vpos, "vertical position, source lines (+ = down)");
     console_register("hpos", cmd_hpos, "horizontal position, source px (+ = right)");
+    console_register("scanlines", cmd_scanlines, "scanlines on|off (needs vscale >= 2)");
     console_register("capture", cmd_capture, "capture a frames");
     console_register("bp", cmd_bp, "back porch");
     console_register("phase", cmd_phase, "sampling phase, sysclk steps within a pixel");
