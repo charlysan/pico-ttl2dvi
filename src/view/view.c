@@ -119,9 +119,26 @@ void __not_in_flash_func(view_render)(void)
     const uint32_t spp   = capture_spp();
     const uint     sft   = bits == 6 ? 0u : (uint)__builtin_ctz(spw);
 
+    // Oversampled RGBI into 8bpp with the whole row inside the capture: the
+    // resampling loop without its per-pixel multiply, bounds check and word
+    // packing. It must beat the DMA refilling rawbuf behind it (one line per
+    // ~63 us at 15.8 kHz), or the bottom rows come from the next capture.
+    const bool res8 = !one && bits == 4 && bpp == 8 && h_border <= 0
+                      && (uint)(-h_border) + fb_w <= src_w;
+
     for (int i = 0; i < n; i++) {
         uint32_t  *fb_line = &fb[(uint)i * fb_words];
         const uint line    = (uint)(first_line + i);
+        if (res8) {
+            const uint32_t *raw = (const uint32_t *)capture_raw_line(line);
+            uint8_t *out = (uint8_t *)fb_line;
+            uint32_t acc = spp / 2 + (uint32_t)(-h_border) * spp;
+            for (uint x = 0; x < fb_w; x++, acc += spp) {
+                const uint s = acc >> 16;
+                out[x] = map[(raw[s >> 3] >> ((s & 7u) << 2)) & 15u];
+            }
+            continue;
+        }
         if (word5) {
             // 5 samples per source word at bits 2, 8, 14, 20, 26; 4 pixels per
             // fb word. 4 source words fill 5 fb words.
