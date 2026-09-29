@@ -1,6 +1,6 @@
 #ifndef TTL2DVI_VERSION_H
 #define TTL2DVI_VERSION_H
 
-#define TTL2DVI_VERSION "0.0.1"
+#define TTL2DVI_VERSION "0.1.0"
 
 #endif

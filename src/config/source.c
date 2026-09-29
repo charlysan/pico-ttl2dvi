@@ -105,16 +105,25 @@ static const source_mode_t *const sources[] = {
 #define SRC_SCRATCH 5
 #define SRC_MAGIC   0x5c7a01u
 
+// Auto detection on/off, in scratch[6]. Off has its own value: 0 is what a
+// power cycle leaves, which means "use the stored setting".
+#define AUTO_SCRATCH 6
+#define AUTO_ON      0xa0707a01u
+#define AUTO_OFF     0xa0707a00u
+
 static uint g_active = 0;
 
-void source_init(void)
+void source_init(uint8_t stored_id, bool stored_auto)
 {
     s_ega = *ega_variants[0];
 
     uint32_t sel = watchdog_hw->scratch[SRC_SCRATCH];
-    if ((sel >> 8) != SRC_MAGIC) return;
+    const uint8_t id = (sel >> 8) == SRC_MAGIC ? (uint8_t)(sel & 0xffu) : stored_id;
     for (uint i = 0; i < SOURCE_COUNT; i++)
-        if (sources[i]->id == (sel & 0xffu)) g_active = i;
+        if (sources[i]->id == id) g_active = i;
+
+    const uint32_t a = watchdog_hw->scratch[AUTO_SCRATCH];
+    if (a != AUTO_ON && a != AUTO_OFF) source_set_auto(stored_auto);
 }
 
 uint source_count(void)                   { return SOURCE_COUNT; }
@@ -122,21 +131,23 @@ const source_mode_t *source_get(uint i)   { return i < SOURCE_COUNT ? sources[i]
 const source_mode_t *source_active(void)  { return sources[g_active]; }
 uint source_active_index(void)            { return g_active; }
 
-// Auto detection on/off, in scratch[6]; survives the reboots it causes.
-#define AUTO_SCRATCH 6
-#define AUTO_MAGIC   0xa0707a01u
-
-bool source_auto(void) { return watchdog_hw->scratch[AUTO_SCRATCH] == AUTO_MAGIC; }
+bool source_auto(void) { return watchdog_hw->scratch[AUTO_SCRATCH] == AUTO_ON; }
 
 void source_set_auto(bool on)
 {
-    watchdog_hw->scratch[AUTO_SCRATCH] = on ? AUTO_MAGIC : 0;
+    watchdog_hw->scratch[AUTO_SCRATCH] = on ? AUTO_ON : AUTO_OFF;
+}
+
+void source_store(uint i)
+{
+    if (i >= SOURCE_COUNT) return;
+    watchdog_hw->scratch[SRC_SCRATCH] = (SRC_MAGIC << 8) | sources[i]->id;
 }
 
 void source_select(uint i)
 {
     if (i >= SOURCE_COUNT) return;
-    watchdog_hw->scratch[SRC_SCRATCH] = (SRC_MAGIC << 8) | sources[i]->id;
+    source_store(i);
     watchdog_reboot(0, 0, 50);
     while (true) tight_loop_contents();
 }

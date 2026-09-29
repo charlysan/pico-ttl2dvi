@@ -26,9 +26,12 @@ typedef struct {
     char     name[SETTINGS_NAME];   // not NUL-terminated when full
 } settings_slot_t;
 
-// Boot order: settings_init() and settings_boot_mode() before video_init();
-// settings_apply_boot() after view_init().
+// Boot order: settings_init() first (it only reads flash), then source_init()
+// with settings_source_id() / settings_auto(); settings_boot_mode() before
+// video_init(); settings_apply_boot() after view_init().
 void settings_init(void);
+uint8_t settings_source_id(void);       // 0 = none stored
+bool    settings_auto(void);
 int  settings_boot_mode(void);          // mode for video_preselect_mode(), or -1
 void settings_apply_boot(void);
 void settings_apply_default(void);      // after an EGA family switch
@@ -40,6 +43,7 @@ int  settings_default(void);                    // current group's, -1 if none
 void settings_save(uint n, const char *name);
 void settings_clear(uint n);
 void settings_set_default(int n);               // -1 = none
+void settings_save_source(uint8_t id, bool auto_on);   // applies after power cycles
 
 // Applies slot n now. If its output mode differs, switches mode (reboots) and
 // applies it after the reboot. False if the slot is empty.

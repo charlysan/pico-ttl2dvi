@@ -82,15 +82,38 @@ void cmd_status(int argc, char **argv) {
                (unsigned long)(si.ms / 1000u), (unsigned long)(si.ms % 1000u / 100u));
 }
 
+// One line, space-separated key=value, for tools polling the device. Only
+// values already known: HSYNC/VSYNC come from the signal check, so it never
+// waits for a sync measurement.
+void cmd_state(int argc, char **argv) {
+    (void)argc; (void)argv;
+    static const char *const sig[] = { "none", "unstable", "stable" };
+    signal_info_t si;
+    signal_get(&si);
+    const bool live = si.state != SIGNAL_NONE;
+    const uint32_t hs = live ? si.hsync_hz : 0, vs = live ? si.vsync_mhz : 0;
+    printf("state src=%u grp=%u auto=%u mode=%u hs=%lu vs=%lu.%02lu sig=%s bits=%u os=%u"
+           " bp=%d phase=%d pxcyc=%u dot=%u vscale=%u vpos=%d hpos=%d scan=%u lvl=%u,%u"
+           " def=%d\n",
+           source_active_index(), source_group(), source_auto() ? 1u : 0u,
+           video_mode_current(), (unsigned long)hs,
+           (unsigned long)(vs / 1000u), (unsigned long)(vs % 1000u / 10u), sig[si.state],
+           source_active()->data_bits, capture_oversample(), capture_get_bp(),
+           capture_get_phase(), capture_px_cyc(), capture_dot_hz(), view_get_vscale(),
+           view_get_vpos(), view_get_hpos(), video_get_scanlines() ? 1u : 0u,
+           view_get_mda_normal(), view_get_mda_bright(), settings_default());
+}
+
 void cmd_source(int argc, char **argv) {
+    // Both forms also go to flash, so they hold after a power cycle; the
+    // flash write reboots.
     if (argc >= 2 && !strcmp(argv[1], "auto")) {
-        if (argc >= 3 && !strcmp(argv[2], "on")) {
-            source_set_auto(true);
-            auto_kick();
-        } else if (argc >= 3 && !strcmp(argv[2], "off")) {
-            source_set_auto(false);
-        } else {
+        const bool on = argc >= 3 && !strcmp(argv[2], "on");
+        if (argc < 3 || (!on && strcmp(argv[2], "off"))) {
             printf("source auto on|off\n");
+        } else {
+            source_set_auto(on);
+            settings_save_source(source_active()->id, on);
         }
     } else if (argc >= 2) {
         char *end;
@@ -98,10 +121,10 @@ void cmd_source(int argc, char **argv) {
         if (*end || i < 0 || (uint)i >= source_count()) {
             printf("no such source: %s\n", argv[1]);
         } else {
+            printf("switching to %s...\n", source_get((uint)i)->name);
             source_set_auto(false);
-            printf("switching to %s (reboot)...\n", source_get((uint)i)->name);
-            sleep_ms(50);
-            source_select((uint)i);
+            source_store((uint)i);
+            settings_save_source(source_get((uint)i)->id, false);
         }
     }
     printf("  auto detection: %s\n", source_auto() ? "on" : "off");

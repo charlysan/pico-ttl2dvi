@@ -25,8 +25,10 @@ typedef struct {
                              // another rate aren't rendered
 } source_mode_t;
 
-// Call first in main(): resolves the active source before the overclock.
-void source_init(void);
+// Call first in main(), before the overclock. The source and auto flag come
+// from watchdog scratch (set before a warm reboot); after a power cycle, when
+// scratch is empty, from stored_id / stored_auto (the settings flash).
+void source_init(uint8_t stored_id, bool stored_auto);
 
 uint source_count(void);
 const source_mode_t *source_get(uint i);
@@ -35,6 +37,7 @@ uint source_active_index(void);
 
 // Switching reboots; the choice survives in watchdog scratch[5].
 void source_select(uint i);
+void source_store(uint i);          // as source_select, without the reboot
 
 // Settings groups (src/settings): each source, with EGA's two families
 // separate, since they need different tuning: 0 MDA16, 1 CGA, 2 C128,
@@ -44,8 +47,8 @@ uint source_group(void);
 const char *source_group_name(uint g);
 
 // Auto detection (apps/ttl2dvi/detect.c) on/off, in scratch[6]. It survives
-// warm reboots, including the ones auto detection makes; a power cycle
-// clears it.
+// warm reboots, including the ones auto detection makes; after a power cycle
+// it comes from the settings flash (see source_init).
 bool source_auto(void);
 void source_set_auto(bool on);
 

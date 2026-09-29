@@ -54,8 +54,6 @@ void detect_run(detect_result_t *r)
 static bool     s_pending = true;   // detect at boot
 static uint64_t s_none_since, s_last_try;
 
-void auto_kick(void) { s_pending = true; }
-
 void auto_poll(uint32_t line)
 {
     if (!source_auto()) return;

@@ -14,7 +14,7 @@
 // Bump FORMAT_VER whenever the layout changes: a stored page with another
 // version is ignored rather than misread.
 #define MAGIC        0x53544c54u   // "TLTS"
-#define FORMAT_VER   1u
+#define FORMAT_VER   2u
 #define FLASH_OFS    (PICO_FLASH_SIZE_BYTES - FLASH_SECTOR_SIZE)
 #define NO_DEFAULT   0xffu
 
@@ -27,7 +27,9 @@ typedef struct {
     uint32_t        magic;
     uint16_t        ver;
     uint8_t         def[SOURCE_GROUPS];
-    uint8_t         pad;
+    uint8_t         src_id;         // last source chosen by hand (0 = none)
+    uint8_t         auto_on;
+    uint8_t         pad[3];
     settings_slot_t slot[SOURCE_GROUPS][SETTINGS_SLOTS];
 } store_t;
 
@@ -47,6 +49,9 @@ void settings_init(void)
         memset(u.s.def, NO_DEFAULT, sizeof u.s.def);
     }
 }
+
+uint8_t settings_source_id(void) { return u.s.src_id; }
+bool    settings_auto(void)      { return u.s.auto_on != 0; }
 
 static settings_slot_t *slot_at(uint g, uint n)
 {
@@ -168,5 +173,12 @@ void settings_clear(uint n)
 void settings_set_default(int n)
 {
     u.s.def[source_group()] = n < 0 ? NO_DEFAULT : (uint8_t)n;
+    commit();
+}
+
+void settings_save_source(uint8_t id, bool auto_on)
+{
+    u.s.src_id  = id;
+    u.s.auto_on = auto_on ? 1u : 0u;
     commit();
 }

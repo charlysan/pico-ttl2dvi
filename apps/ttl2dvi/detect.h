@@ -36,6 +36,5 @@ void detect_run(detect_result_t *r);
 // signal doesn't fit the running source; reboots into another source if
 // that's what it finds.
 void auto_poll(uint32_t line);
-void auto_kick(void);           // detect at the next stable signal
 
 #endif

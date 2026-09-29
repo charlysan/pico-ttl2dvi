@@ -14,8 +14,8 @@
 #include "settings.h"
 
 int main(void) {
-    source_init();
     settings_init();
+    source_init(settings_source_id(), settings_auto());
 
     // Overclock; 1.25 V above 256 MHz (CGA 258, EGA 266.4) for margin.
     const uint khz = source_active()->sysclk_khz;
@@ -40,6 +40,7 @@ int main(void) {
     console_init();
     console_register("version", cmd_version, "firmware version");
     console_register("status", cmd_status, "system status");
+    console_register("state", cmd_state, "all state in one key=value line, for tools");
     console_register("slots", cmd_slots, "this source's saved settings");
     console_register("save", cmd_save, "save settings: save <slot> [name] (reboots)");
     console_register("load", cmd_load, "load settings: load <slot>");
