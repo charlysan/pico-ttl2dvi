@@ -36,6 +36,13 @@ uint source_active_index(void);
 // Switching reboots; the choice survives in watchdog scratch[5].
 void source_select(uint i);
 
+// Settings groups (src/settings): each source, with EGA's two families
+// separate, since they need different tuning: 0 MDA16, 1 CGA, 2 C128,
+// 3 EGA 350, 4 EGA 200.
+#define SOURCE_GROUPS 5
+uint source_group(void);
+const char *source_group_name(uint g);
+
 // Auto detection (apps/ttl2dvi/detect.c) on/off, in scratch[6]. It survives
 // warm reboots, including the ones auto detection makes; a power cycle
 // clears it.

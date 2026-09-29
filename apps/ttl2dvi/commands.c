@@ -12,6 +12,7 @@
 #include "view.h"
 #include "sigcheck.h"
 #include "detect.h"
+#include "settings.h"
 
 // --- diagnostics ---
 void cmd_version(int argc, char **argv) {
@@ -274,6 +275,67 @@ void cmd_detect(int argc, char **argv) {
                c->index == source_active_index() ? ", already selected" : ", would switch");
     }
     }
+}
+
+// --- settings slots ---
+static bool slot_arg(int argc, char **argv, uint *n) {
+    char *end;
+    long v = argc >= 2 ? strtol(argv[1], &end, 10) : -1;
+    if (argc < 2 || *end || v < 0 || v >= SETTINGS_SLOTS) {
+        printf("slot 0..%u\n", SETTINGS_SLOTS - 1);
+        return false;
+    }
+    *n = (uint)v;
+    return true;
+}
+
+void cmd_slots(int argc, char **argv) {
+    (void)argc; (void)argv;
+    const int def = settings_default();
+    if (def >= 0) printf("  %s slots (default: %d):\n", source_group_name(source_group()), def);
+    else          printf("  %s slots (no default):\n", source_group_name(source_group()));
+    for (uint n = 0; n < SETTINGS_SLOTS; n++) {
+        const settings_slot_t *t = settings_slot(n);
+        if (!t) { printf("  %u  -\n", n); continue; }
+        printf("  %u%c %-8.8s %s, bp %d, phase %u, dot %lu.%04lu, vscale %u, vpos %d, hpos %d,"
+               " scanlines %s, levels %u/%u\n",
+               n, (int)n == def ? '*' : ' ', t->name, video_mode_name(t->mode),
+               t->bp, t->phase, (unsigned long)(t->dot_hz / 1000000u),
+               (unsigned long)((t->dot_hz / 100u) % 10000u), t->vscale, t->vpos, t->hpos,
+               t->scanlines ? "on" : "off", t->lvl_normal, t->lvl_bright);
+    }
+    if (def >= 0) printf("  * = default, applied at boot\n");
+}
+
+void cmd_save(int argc, char **argv) {
+    uint n;
+    if (slot_arg(argc, argv, &n)) settings_save(n, argc >= 3 ? argv[2] : NULL);
+}
+
+void cmd_load(int argc, char **argv) {
+    uint n;
+    if (!slot_arg(argc, argv, &n)) return;
+    if (!settings_load(n)) printf("slot %u is empty\n", n);
+    else                   printf("loaded slot %u\n", n);
+}
+
+void cmd_clear(int argc, char **argv) {
+    uint n;
+    if (slot_arg(argc, argv, &n)) settings_clear(n);
+}
+
+void cmd_default(int argc, char **argv) {
+    uint n;
+    if (argc < 2) {
+        const int def = settings_default();
+        if (def < 0) printf("default: none\n");
+        else         printf("default: slot %d (%.8s)\n", def, settings_slot((uint)def)->name);
+        return;
+    }
+    if (!strcmp(argv[1], "off")) { settings_set_default(-1); return; }
+    if (!slot_arg(argc, argv, &n)) return;
+    if (!settings_slot(n)) { printf("slot %u is empty\n", n); return; }
+    settings_set_default((int)n);
 }
 
 void cmd_fastcap(int argc, char **argv) {

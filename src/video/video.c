@@ -190,14 +190,23 @@ uint video_mode_count(void)   { return g_set->count; }
 uint video_mode_current(void) { return g_mode; }
 const char *video_mode_name(uint i) { return i < g_set->count ? g_set->modes[i].name : ""; }
 
-void video_set_mode(uint i)
+void video_mode_store(uint i)
 {
     if (i >= g_set->count) return;
     watchdog_hw->scratch[MODE_SCRATCH] =
         (MODE_MAGIC << 16) | ((uint32_t)g_set->src_id << 8) | i;
+}
+
+void video_set_mode(uint i)
+{
+    if (i >= g_set->count) return;
+    video_mode_store(i);
     watchdog_reboot(0, 0, 50);
     while (true) tight_loop_contents();
 }
+
+static int g_preselect = -1;
+void video_preselect_mode(uint i) { g_preselect = (int)i; }
 
 // Sample I | R<<1 | G<<2 | B<<3 -> RGB222. Each channel's level is
 // (colour << 1) | intensity; colour 6 is brown, not dark yellow.
@@ -300,6 +309,7 @@ void video_init(void)
         if (mode_sets[i].src_id == src_id) g_set = &mode_sets[i];
 
     g_mode = g_set->def;
+    if (g_preselect >= 0 && (uint)g_preselect < g_set->count) g_mode = (uint)g_preselect;
     uint32_t sel = watchdog_hw->scratch[MODE_SCRATCH];
     if ((sel >> 16) == MODE_MAGIC && ((sel >> 8) & 0xffu) == g_set->src_id
         && (sel & 0xffu) < g_set->count)

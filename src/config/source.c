@@ -184,6 +184,18 @@ void source_ega_select(uint variant)
     s_ega_var = variant;
 }
 
+// Settings groups: one per source, EGA split by family (variant order: 350, 200).
+uint source_group(void)
+{
+    return sources[g_active] == &s_ega ? g_active + s_ega_var : g_active;
+}
+
+const char *source_group_name(uint g)
+{
+    static const char *const names[SOURCE_GROUPS] = { "MDA16", "CGA", "C128", "EGA 350", "EGA 200" };
+    return g < SOURCE_GROUPS ? names[g] : "?";
+}
+
 // Every source (each EGA variant separately) whose line rate is within 3%.
 #define CAND_TOL_PCT 3u
 

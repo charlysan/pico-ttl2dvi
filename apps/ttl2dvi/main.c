@@ -11,21 +11,27 @@
 #include "source.h"
 #include "sigcheck.h"
 #include "detect.h"
+#include "settings.h"
 
 int main(void) {
     source_init();
+    settings_init();
 
-    // Overclock. Above 256 MHz (CGA 258, EGA 266.4) 1.20 V isn't enough under
-    // heavy CPU load.
+    // Overclock; 1.25 V above 256 MHz (CGA 258, EGA 266.4) for margin.
     const uint khz = source_active()->sysclk_khz;
     vreg_set_voltage(khz > 256000u ? VREG_VOLTAGE_1_25 : VREG_VOLTAGE_1_20);
     sleep_ms(10);
     set_sys_clock_khz(khz, true);
 
+    // A saved slot may choose the output mode, which must be known before DVI
+    // starts; its knobs can only be applied once everything is up.
+    const int mode = settings_boot_mode();
+    if (mode >= 0) video_preselect_mode((uint)mode);
     video_init();
     sync_init();
     capture_init();
     view_init();
+    settings_apply_boot();
 
     stdio_init_all();
     // Do NOT wait for USB
@@ -34,6 +40,11 @@ int main(void) {
     console_init();
     console_register("version", cmd_version, "firmware version");
     console_register("status", cmd_status, "system status");
+    console_register("slots", cmd_slots, "this source's saved settings");
+    console_register("save", cmd_save, "save settings: save <slot> [name] (reboots)");
+    console_register("load", cmd_load, "load settings: load <slot>");
+    console_register("clear", cmd_clear, "clear a slot: clear <slot> (reboots)");
+    console_register("default", cmd_default, "slot applied at boot: default <slot>|off (reboots)");
     console_register("source", cmd_source, "list / set video source (reboots), or source auto on|off");
     console_register("mode", cmd_mode, "list / set output mode (reboots)");
     console_register("mdalevels", cmd_mdalevels, "MDA grey levels: mdalevels [normal [bright]] (0..3)");
@@ -69,6 +80,7 @@ int main(void) {
                 source_ega_select((uint)v);
                 capture_reconfigure();
                 view_init();
+                settings_apply_default();
             }
 
             // Last: a detection overwrites rawbuf with its fast capture.

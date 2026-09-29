@@ -13,6 +13,10 @@ uint video_mode_count(void);
 uint video_mode_current(void);
 const char *video_mode_name(uint i);
 void video_set_mode(uint i);
+void video_mode_store(uint i);      // as video_set_mode, without the reboot
+// Mode to use at the next video_init() when no mode was stored since the last
+// power cycle. Call before video_init().
+void video_preselect_mode(uint i);
 
 // LSB = leftmost pixel. Depth is per mode:
 //   2bpp: 0..3 = the four fixed greys in tmds_encode_2bpp (MDA)

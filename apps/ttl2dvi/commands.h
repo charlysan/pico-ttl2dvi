@@ -18,6 +18,13 @@ void cmd_fastcap(int argc, char **argv);
 void cmd_measure(int argc, char **argv);
 void cmd_detect(int argc, char **argv);
 
+// --- settings slots ---
+void cmd_slots(int argc, char **argv);
+void cmd_save(int argc, char **argv);
+void cmd_load(int argc, char **argv);
+void cmd_clear(int argc, char **argv);
+void cmd_default(int argc, char **argv);
+
 // --- capture ---
 void cmd_capture(int argc, char **argv);
 void cmd_bp(int argc, char **argv);
