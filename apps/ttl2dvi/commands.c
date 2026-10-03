@@ -13,6 +13,7 @@
 #include "sigcheck.h"
 #include "detect.h"
 #include "settings.h"
+#include "osd.h"
 
 // --- diagnostics ---
 void cmd_version(int argc, char **argv) {
@@ -167,21 +168,32 @@ void cmd_mdalevels(int argc, char **argv) {
         printf("levels are 0..3\n");
     else
         view_set_mda_levels(normal, bright);
+    if (argc >= 2)
+        osd_knob("mdalevels %u %u", view_get_mda_normal(), view_get_mda_bright());
     printf("mdalevels normal=%u bright=%u\n", view_get_mda_normal(), view_get_mda_bright());
 }
 
 void cmd_vscale(int argc, char **argv) {
-    if (argc >= 2) view_set_vscale(atoi(argv[1]));
+    if (argc >= 2) {
+        view_set_vscale(atoi(argv[1]));
+        osd_knob("vscale %u", view_get_vscale());
+    }
     printf("vscale = %ux\n", view_get_vscale());
 }
 
 void cmd_vpos(int argc, char **argv) {
-    if (argc >= 2) view_set_vpos(atoi(argv[1]));
+    if (argc >= 2) {
+        view_set_vpos(atoi(argv[1]));
+        osd_knob("vpos %d", view_get_vpos());
+    }
     printf("vpos = %d source lines\n", view_get_vpos());
 }
 
 void cmd_hpos(int argc, char **argv) {
-    if (argc >= 2) view_set_hpos(atoi(argv[1]));
+    if (argc >= 2) {
+        view_set_hpos(atoi(argv[1]));
+        osd_knob("hpos %d", view_get_hpos());
+    }
     printf("hpos = %d source px\n", view_get_hpos());
 }
 
@@ -199,6 +211,8 @@ void cmd_dotclock(int argc, char **argv) {
         }
         if (!capture_set_dot_hz(hz))
             printf("out of range for this sysclk\n");
+        const uint d = capture_dot_hz();
+        osd_knob("dotclock %u.%04u", d / 1000000u, (d / 100u) % 10000u);
     }
 
     const uint dot = capture_dot_hz();
@@ -370,25 +384,9 @@ void cmd_scanlines(int argc, char **argv) {
         if (!strcmp(argv[1], "on"))       video_set_scanlines(true);
         else if (!strcmp(argv[1], "off")) video_set_scanlines(false);
         else printf("scanlines on|off\n");
+        osd_knob("scanlines %s", video_get_scanlines() ? "on" : "off");
     }
     printf("scanlines = %s\n", video_get_scanlines() ? "on" : "off");
-}
-
-void cmd_osd(int argc, char **argv) {
-    if (argc < 2) {
-        printf("osd <text> | osd off\n");
-        return;
-    }
-    if (!strcmp(argv[1], "off")) {
-        video_osd_hide();
-        return;
-    }
-    char text[96] = "";
-    for (int i = 1; i < argc; i++) {
-        if (i > 1) strncat(text, " ", sizeof text - strlen(text) - 1);
-        strncat(text, argv[i], sizeof text - strlen(text) - 1);
-    }
-    video_osd_show(text, 5000);
 }
 
 void cmd_capture_stat(int argc, char **argv) {
@@ -407,12 +405,18 @@ void cmd_capture(int argc, char **argv) {
 }
 
 void cmd_bp(int argc, char **argv) {
-    if (argc >= 2) capture_set_bp(atoi(argv[1]));
+    if (argc >= 2) {
+        capture_set_bp(atoi(argv[1]));
+        osd_knob("bp %d", capture_get_bp());
+    }
     printf("bp = %d px\n", capture_get_bp());
 }
 
 void cmd_phase(int argc, char **argv) {
-    if (argc >= 2) capture_set_phase(atoi(argv[1]));
+    if (argc >= 2) {
+        capture_set_phase(atoi(argv[1]));
+        osd_knob("phase %d/%u", capture_get_phase(), capture_px_cyc());
+    }
     printf("phase = %d/%u px\n", capture_get_phase(), capture_px_cyc());
 }
 

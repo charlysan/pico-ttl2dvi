@@ -201,10 +201,14 @@ static uint32_t osd_line[FB_W_MAX / 4u];
 static uint     osd_y;
 static volatile uint     g_osd_g0, g_osd_g1; // box, in glyph cells
 static volatile bool     g_osd_on;
+static bool              g_osd_enabled = true;
+static bool              g_osd_hold;        // ignore timeouts: stay until replaced or hidden
 static volatile uint32_t g_osd_until;       // time_us_32() deadline, 0 = no timeout
 
 void video_osd_show(const char *s, uint ms)
 {
+    if (!g_osd_enabled) return;
+    if (g_osd_hold) ms = 0;
     const uint cols = g_fb_w / 8u;
     uint len = (uint)strlen(s);
     if (len > cols) len = cols;
@@ -222,6 +226,16 @@ void video_osd_show(const char *s, uint ms)
 }
 
 void video_osd_hide(void) { g_osd_on = false; }
+
+void video_osd_enable(bool on)
+{
+    g_osd_enabled = on;
+    if (!on) g_osd_on = false;
+}
+
+bool video_osd_enabled(void)      { return g_osd_enabled; }
+void video_osd_set_hold(bool on)  { g_osd_hold = on; }
+bool video_osd_hold(void)         { return g_osd_hold; }
 
 static bool osd_visible(void)
 {
