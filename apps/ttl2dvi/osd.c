@@ -212,7 +212,8 @@ static void osd_usage(void)
            "  osd auto|hold    messages hide after a timeout, or stay until replaced\n"
            "  osd hide         hide the current message and stop live\n"
            "  osd status       source, sysclk, HSYNC, VSYNC (5 s)\n"
-           "  osd live [off]   H, V, lines/frame, capture fps, signal, every 500 ms\n"
+           "  osd live [on|off] H, V, lines/frame, capture fps, signal, every 500 ms;\n"
+           "                   no argument toggles it\n"
            "  osd_print <text> show text (5 s)\n");
 }
 
@@ -225,7 +226,7 @@ void cmd_osd(int argc, char **argv) {
         else if (!strcmp(a, "hold"))   video_osd_set_hold(true);
         else if (!strcmp(a, "hide"))   osd_live(false);
         else if (!strcmp(a, "status")) osd_status(true);
-        else if (!strcmp(a, "live"))   osd_live(argc < 3 || strcmp(argv[2], "off"));
+        else if (!strcmp(a, "live"))   osd_live(argc < 3 ? !s_live : strcmp(argv[2], "off") != 0);
         else { osd_usage(); return; }
     }
     printf("osd %s, %s%s\n", video_osd_enabled() ? "on" : "off",

@@ -383,7 +383,8 @@ void cmd_scanlines(int argc, char **argv) {
     if (argc >= 2) {
         if (!strcmp(argv[1], "on"))       video_set_scanlines(true);
         else if (!strcmp(argv[1], "off")) video_set_scanlines(false);
-        else printf("scanlines on|off\n");
+        else if (!strcmp(argv[1], "switch")) video_set_scanlines(!video_get_scanlines());
+        else printf("scanlines on|off|switch\n");
         osd_knob("scanlines %s", video_get_scanlines() ? "on" : "off");
     }
     printf("scanlines = %s\n", video_get_scanlines() ? "on" : "off");

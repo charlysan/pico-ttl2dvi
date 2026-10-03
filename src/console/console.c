@@ -61,6 +61,13 @@ static void dispatch(char *line) {
     printf("command not found: %s\n", argv[0]);
 }
 
+void console_exec(const char *line) {
+    char buf[LINE_MAX];
+    strncpy(buf, line, sizeof buf - 1);
+    buf[sizeof buf - 1] = '\0';
+    dispatch(buf);
+}
+
 void console_poll(void) {
     int ch;
     while ((ch = getchar_timeout_us(0)) != PICO_ERROR_TIMEOUT) {
