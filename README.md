@@ -139,6 +139,56 @@ Vcc being 3.3 V.
 Beyond dropping the resistors, this also removes the power-sequencing rule: LVC
 supports partial power-down, so the card may be live while the Pico is off.
 
+### Controls: buttons and IR remote (optional)
+
+Three push buttons and an IR receiver drive a one-line on-screen menu, so the
+box can be tuned without a computer. Both are optional.
+
+| Function | GPIO | Header pin (Pi layout) |
+|---|---|---|
+| IR receiver output | 6 | 31 |
+| Button UP (previous / -1) | 7 | 26 |
+| Button DOWN (next / +1) | 8 | 24 |
+| Button ENTER (short: select, long: back) | 9 | 21 |
+
+```
+   push buttons (each one to GND)              RP2350
+   ──────────────────────────────              ──────
+          ┌──── UP ────┐
+   GND ───┤            ├───────────────────►  GPIO 7
+          └─── o  o ───┘
+          ┌─── DOWN ───┐
+   GND ───┤            ├───────────────────►  GPIO 8
+          └─── o  o ───┘
+          ┌── ENTER ───┐
+   GND ───┤            ├───────────────────►  GPIO 9
+          └─── o  o ───┘
+
+   IR receiver (KY-022 / VS1838B)
+   ──────────────────────────────
+          ┌───────────┐
+          │  KY-022   │
+          │         S ├────────────────────►  GPIO 6
+          │       VCC ├───────────────────◄   3V3
+          │         - ├────────────────────   GND
+          └───────────┘
+```
+
+- **No resistors.** The firmware enables the internal pull-ups, so a button
+  reads low while pressed. Wire buttons to **GND**, not to 3V3 with
+  pull-downs: RP2350 erratum E9 can latch an input with the internal pull-down
+  at ~2 V.
+- **Power the IR receiver from 3V3**, not 5 V: its output is pulled up to its
+  own supply, so at 3V3 it connects straight to the GPIO.
+- The receiver must speak **NEC**, which most cheap remotes do. Its supply seems 
+  to be noise-sensitive (to be confirmed). A filter cap might be needed between 
+  VCC and GND.
+
+To use a remote, record its buttons with `tools/irlearn.py --learn ir.txt`,
+turn the map into a UF2 with `tools/irmap2uf2.py ir.txt`, and drop
+`irmap.uf2` on the BOOTSEL drive (or `picotool load -f irmap.uf2`). Firmware
+updates leave the map in place.
+
 ## How it works
 
 ```
