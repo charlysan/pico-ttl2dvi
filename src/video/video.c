@@ -186,6 +186,95 @@ static inline const uint32_t *row_for(uint y)
     return r < n ? &framebuf[r * g_fb_words] : zero_row;
 }
 
+// OSD: one line of 8x8 text in a black box, drawn by core1 over display lines
+// [osd_y, osd_y + OSD_H). The picture shows either side.
+#include "font_8x8.h"
+#define OSD_COLS   (FB_W_MAX / 8u)
+#define OSD_H      10u                      // 8 glyph rows + 1 black above and below
+#define OSD_MARGIN 16u
+#define OSD_WHITE  0x3fu                    // RGB222
+
+static uint8_t  osd_glyph[OSD_COLS];        // char - 32
+static uint16_t osd_lut2[256];              // glyph byte -> 8 px at 2bpp
+static uint32_t osd_lut8[16];               // glyph nibble -> 4 px at 8bpp
+static uint32_t osd_line[FB_W_MAX / 4u];
+static uint     osd_y;
+static volatile uint     g_osd_g0, g_osd_g1; // box, in glyph cells
+static volatile bool     g_osd_on;
+static volatile uint32_t g_osd_until;       // time_us_32() deadline, 0 = no timeout
+
+void video_osd_show(const char *s, uint ms)
+{
+    const uint cols = g_fb_w / 8u;
+    uint len = (uint)strlen(s);
+    if (len > cols) len = cols;
+    const uint x0 = (cols - len) / 2u;
+    for (uint i = 0; i < cols; i++) {
+        uint c = i >= x0 && i < x0 + len ? (uint8_t)s[i - x0] : ' ';
+        osd_glyph[i] = (uint8_t)(c >= 32 && c < 127 ? c - 32 : 0);
+    }
+    // One blank glyph of margin each side.
+    const uint g1 = x0 + len + 1u;
+    g_osd_g0 = x0 ? x0 - 1u : 0u;
+    g_osd_g1 = g1 < cols ? g1 : cols;
+    g_osd_until = ms ? (time_us_32() + ms * 1000u) | 1u : 0;
+    g_osd_on = true;
+}
+
+void video_osd_hide(void) { g_osd_on = false; }
+
+static bool osd_visible(void)
+{
+    if (!g_osd_on) return false;
+    uint32_t until = g_osd_until;
+    return !until || (int32_t)(until - time_us_32()) > 0;
+}
+
+// 2bpp: two glyphs per word, so the box snaps to even cells.
+// 8bpp: two words per glyph.
+static const uint32_t *__not_in_flash_func(osd_render)(uint r, const uint32_t *row)
+{
+    const uint g0 = g_osd_g0, g1 = g_osd_g1;
+    const bool mono = g_bpp == 2;
+    const uint w0 = mono ? g0 / 2u : 2u * g0;
+    const uint w1 = mono ? (g1 + 1u) / 2u : 2u * g1;
+    memcpy(osd_line, row, g_fb_words * sizeof(uint32_t));
+    if (r == 0 || r == OSD_H - 1u) {
+        for (uint w = w0; w < w1; w++) osd_line[w] = 0;
+        return osd_line;
+    }
+    const uint8_t *f = (const uint8_t *)font_8x8 + (r - 1u) * 95u;
+    if (mono) {
+        for (uint w = w0; w < w1; w++)
+            osd_line[w] = osd_lut2[f[osd_glyph[2 * w]]]
+                        | (uint32_t)osd_lut2[f[osd_glyph[2 * w + 1]]] << 16;
+    } else {
+        for (uint g = g0; g < g1; g++) {
+            const uint b = f[osd_glyph[g]];
+            osd_line[2 * g]     = osd_lut8[b & 15u];
+            osd_line[2 * g + 1] = osd_lut8[b >> 4];
+        }
+    }
+    return osd_line;
+}
+
+static void osd_init(void)
+{
+    for (uint b = 0; b < 256; b++) {
+        uint v = 0;
+        for (uint i = 0; i < 8; i++)
+            if (b >> i & 1u) v |= 3u << (2 * i);
+        osd_lut2[b] = (uint16_t)v;
+    }
+    for (uint n = 0; n < 16; n++) {
+        uint32_t v = 0;
+        for (uint i = 0; i < 4; i++)
+            if (n >> i & 1u) v |= OSD_WHITE << (8 * i);
+        osd_lut8[n] = v;
+    }
+    osd_y = g_lines - OSD_H - OSD_MARGIN;
+}
+
 uint video_mode_count(void)   { return g_set->count; }
 uint video_mode_current(void) { return g_mode; }
 const char *video_mode_name(uint i) { return i < g_set->count ? g_set->modes[i].name : ""; }
@@ -266,10 +355,13 @@ static void __not_in_flash_func(core1_mono)(void)
 {
     const uint wpc = dvi0.timing_derived.tmds_words_per_channel;
     while (true) {
+        const bool osd = osd_visible();
         for (uint y = 0; y < g_lines; y++) {
+            const uint32_t *pix = row_for(y);
+            if (osd && y - osd_y < OSD_H) pix = osd_render(y - osd_y, pix);
             uint32_t *tb;
             queue_remove_blocking_u32(&dvi0.q_tmds_free, &tb);
-            tmds_encode_2bpp(row_for(y), tb, g_fb_w);
+            tmds_encode_2bpp(pix, tb, g_fb_w);
             memcpy(tb + wpc,     tb, wpc * sizeof(uint32_t));
             memcpy(tb + 2 * wpc, tb, wpc * sizeof(uint32_t));
             queue_add_blocking_u32(&dvi0.q_tmds_valid, &tb);
@@ -282,8 +374,10 @@ static void __not_in_flash_func(core1_rgb222)(void)
 {
     const uint wpc = dvi0.timing_derived.tmds_words_per_channel;
     while (true) {
+        const bool osd = osd_visible();
         for (uint y = 0; y < g_lines; y++) {
             const uint32_t *pix = row_for(y);
+            if (osd && y - osd_y < OSD_H) pix = osd_render(y - osd_y, pix);
             uint32_t *tb;
             queue_remove_blocking_u32(&dvi0.q_tmds_free, &tb);
             tmds_encode_data_channel_8bpp_fullres(pix, tb,           g_fb_w, B_MSB, B_LSB);
@@ -326,6 +420,7 @@ void video_init(void)
 
     build_cga_rgb222();
     build_ega_rgb222();
+    osd_init();
 
 #if PICO_PIO_USE_GPIO_BASE
     pio_set_gpio_base(DVI_SERIAL_CFG.pio, DVI_GPIO_BASE);   // must precede dvi_init

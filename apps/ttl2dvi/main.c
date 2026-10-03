@@ -53,6 +53,7 @@ int main(void) {
     console_register("vpos", cmd_vpos, "vertical position, source lines (+ = down)");
     console_register("hpos", cmd_hpos, "horizontal position, source px (+ = right)");
     console_register("scanlines", cmd_scanlines, "scanlines on|off (needs vscale >= 2)");
+    console_register("osd", cmd_osd, "show text on screen for 5 s: osd <text> | osd off");
     console_register("capture", cmd_capture, "capture a frame");
     console_register("bp", cmd_bp, "back porch");
     console_register("dotclock", cmd_dotclock, "dot clock in MHz, or default");

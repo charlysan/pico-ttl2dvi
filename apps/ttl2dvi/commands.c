@@ -374,6 +374,23 @@ void cmd_scanlines(int argc, char **argv) {
     printf("scanlines = %s\n", video_get_scanlines() ? "on" : "off");
 }
 
+void cmd_osd(int argc, char **argv) {
+    if (argc < 2) {
+        printf("osd <text> | osd off\n");
+        return;
+    }
+    if (!strcmp(argv[1], "off")) {
+        video_osd_hide();
+        return;
+    }
+    char text[96] = "";
+    for (int i = 1; i < argc; i++) {
+        if (i > 1) strncat(text, " ", sizeof text - strlen(text) - 1);
+        strncat(text, argv[i], sizeof text - strlen(text) - 1);
+    }
+    video_osd_show(text, 5000);
+}
+
 void cmd_capture_stat(int argc, char **argv) {
     (void)argc; (void)argv;
     if (!capture_grab()) {
