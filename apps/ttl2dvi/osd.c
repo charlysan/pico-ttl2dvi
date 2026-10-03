@@ -24,8 +24,24 @@ static uint64_t s_t0, s_last_frame;
 static uint     s_frames, s_nfr, s_ndt;     // frames seen, kept, intervals kept
 static uint32_t s_cyc[LIVE_FRAMES], s_lin[LIVE_FRAMES], s_dt[LIVE_FRAMES];
 
+static bool s_menu;            // the menu owns the line while open
+
+void osd_menu(const char *text)
+{
+    s_menu = true;
+    video_osd_show(text, 0);
+}
+
+void osd_menu_close(void)
+{
+    s_menu = false;
+    video_osd_hide();
+    s_pause_until = 0;
+}
+
 static void show(const char *text, uint ms)
 {
+    if (s_menu) return;
     video_osd_show(text, ms);
     s_pause_until = time_us_64() + (uint64_t)ms * 1000u;
 }
@@ -38,6 +54,16 @@ void osd_knob(const char *fmt, ...)
     vsnprintf(text, sizeof text, fmt, ap);
     va_end(ap);
     show(text, KNOB_MS);
+}
+
+void osd_message(const char *fmt, ...)
+{
+    char text[80];
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(text, sizeof text, fmt, ap);
+    va_end(ap);
+    show(text, TEXT_MS);
 }
 
 void osd_status(bool echo)
@@ -139,7 +165,7 @@ static void poll(uint64_t now)
     s_prev = si.state;
 
     if (!s_live || now - s_t0 < LIVE_MS * 1000u) return;
-    if (now >= s_pause_until) live_show(now);
+    if (now >= s_pause_until && !s_menu) live_show(now);
     live_reset(now);
 }
 
@@ -166,7 +192,9 @@ void osd_lost(void)
     poll(time_us_64());
 }
 
-static void live_set(bool on)
+bool osd_live_on(void) { return s_live; }
+
+void osd_live(bool on)
 {
     s_live = on;
     if (on) {
@@ -192,12 +220,12 @@ void cmd_osd(int argc, char **argv) {
     if (argc >= 2) {
         const char *a = argv[1];
         if      (!strcmp(a, "on"))     video_osd_enable(true);
-        else if (!strcmp(a, "off"))    { live_set(false); video_osd_enable(false); }
+        else if (!strcmp(a, "off"))    { osd_live(false); video_osd_enable(false); }
         else if (!strcmp(a, "auto"))   video_osd_set_hold(false);
         else if (!strcmp(a, "hold"))   video_osd_set_hold(true);
-        else if (!strcmp(a, "hide"))   live_set(false);
+        else if (!strcmp(a, "hide"))   osd_live(false);
         else if (!strcmp(a, "status")) osd_status(true);
-        else if (!strcmp(a, "live"))   live_set(argc < 3 || strcmp(argv[2], "off"));
+        else if (!strcmp(a, "live"))   osd_live(argc < 3 || strcmp(argv[2], "off"));
         else { osd_usage(); return; }
     }
     printf("osd %s, %s%s\n", video_osd_enabled() ? "on" : "off",

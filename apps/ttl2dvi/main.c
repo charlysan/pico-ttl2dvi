@@ -13,6 +13,8 @@
 #include "detect.h"
 #include "settings.h"
 #include "osd.h"
+#include "buttons.h"
+#include "menu.h"
 
 int main(void) {
     settings_init();
@@ -33,6 +35,7 @@ int main(void) {
     capture_init();
     view_init();
     settings_apply_boot();
+    buttons_init();
 
     stdio_init_all();
     // Do NOT wait for USB
@@ -93,6 +96,8 @@ int main(void) {
             auto_poll(line);
         }
         console_poll();
+
+        menu_poll(buttons_poll());
     }
 
 }

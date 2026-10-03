@@ -1,4 +1,4 @@
-add_executable(ttl2dvi main.c commands.c detect.c osd.c)
+add_executable(ttl2dvi main.c commands.c detect.c osd.c buttons.c menu.c)
 target_link_libraries(ttl2dvi ttl2dvi_core)
 pico_enable_stdio_usb(ttl2dvi 1)
 pico_enable_stdio_uart(ttl2dvi 0)
