@@ -10,6 +10,7 @@
 #include "detect.h"
 #include "osd.h"
 #include "learn.h"
+#include "tune.h"
 #include "buttons.h"
 #include "menu.h"
 
@@ -78,6 +79,7 @@ static const item_t sampling[] = {
     { "Back porch",  ITEM_KNOB, .get = capture_get_bp,    .set = capture_set_bp },
     { "Dot clock",   ITEM_KNOB, .get = get_dot,           .set = set_dot, .fmt = fmt_dot },
     { "Dot default", ITEM_ACTION, .run = dot_default },
+    { "Auto tune",   ITEM_ACTION, .run = tune_start },
 };
 
 // ---- Profiles ----
@@ -87,7 +89,7 @@ static uint nslots_off(void)     { return SETTINGS_SLOTS + 1u; }
 static bool slot_used(uint i)    { return settings_slot(i) != NULL; }
 static bool default_ok(uint i)   { return !i || slot_used(i - 1u); }
 
-static void slot_label(uint i, char *s, size_t n)
+void menu_slot_label(uint i, char *s, size_t n)
 {
     const settings_slot_t *t = settings_slot(i);
     const char mark = (int)i == settings_default() ? '*' : ' ';
@@ -97,7 +99,7 @@ static void slot_label(uint i, char *s, size_t n)
 
 static void default_label(uint i, char *s, size_t n)
 {
-    if (i) slot_label(i - 1u, s, n);
+    if (i) menu_slot_label(i - 1u, s, n);
     else   snprintf(s, n, "off%s", settings_default() < 0 ? " *" : "");
 }
 
@@ -107,7 +109,7 @@ static void load_slot(uint i)
 }
 
 // Keeps the name the slot already has.
-static void save_slot(uint i)
+void menu_save_slot(uint i)
 {
     char name[SETTINGS_NAME + 1] = "";
     const settings_slot_t *t = settings_slot(i);
@@ -118,9 +120,11 @@ static void save_slot(uint i)
 static void default_slot(uint i) { settings_set_default(i ? (int)i - 1 : -1); }
 
 static const item_t profiles[] = {
-    { "Load",    ITEM_LIST, .count = nslots, .label = slot_label, .ok = slot_used, .pick = load_slot },
-    { "Save",    ITEM_LIST, .confirm = true, .count = nslots, .label = slot_label, .pick = save_slot },
-    { "Clear",   ITEM_LIST, .confirm = true, .count = nslots, .label = slot_label,
+    { "Load",    ITEM_LIST, .count = nslots, .label = menu_slot_label, .ok = slot_used,
+                 .pick = load_slot },
+    { "Save",    ITEM_LIST, .confirm = true, .count = nslots, .label = menu_slot_label,
+                 .pick = menu_save_slot },
+    { "Clear",   ITEM_LIST, .confirm = true, .count = nslots, .label = menu_slot_label,
                  .ok = slot_used, .pick = settings_clear },
     { "Default", ITEM_LIST, .confirm = true, .count = nslots_off, .label = default_label,
                  .ok = default_ok, .pick = default_slot },

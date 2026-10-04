@@ -93,19 +93,32 @@ static void patch_sample_loop(void)
 // 1x slips a whole pixel every 0.5 / |px / round(px) - 1| pixels; if that lands
 // inside the captured width, sample at 2x instead. Not at 6 bits: rawbuf can't
 // hold a 2x EGA 350 frame.
-static bool derive_rate(uint dot_hz)
+typedef struct {
+    uint     os, px_cyc, cyc;
+    uint32_t spp;
+} rate_t;
+
+static bool rate_for(uint dot_hz, rate_t *r)
 {
     const float px  = (float)clock_get_hz(clk_sys) / (float)dot_hz;
     float err = px / (float)(uint)(px + 0.5f) - 1.0f;
     if (err < 0.0f) err = -err;
-    const uint os  = (g_bits <= 4 && err * (float)(g_active_w + 16u) > 0.5f) ? 2u : 1u;
-    const uint cyc = (uint)(px / (float)os + 0.5f);
-    if (cyc < 2 || cyc > 64) return false;
+    r->os     = (g_bits <= 4 && err * (float)(g_active_w + 16u) > 0.5f) ? 2u : 1u;
+    r->cyc    = (uint)(px / (float)r->os + 0.5f);
+    r->px_cyc = (uint)(px + 0.5f);
+    r->spp    = (uint32_t)(px / (float)r->cyc * 65536.0f + 0.5f);
+    return r->cyc >= 2 && r->cyc <= 64;
+}
+
+static bool derive_rate(uint dot_hz)
+{
+    rate_t r;
+    if (!rate_for(dot_hz, &r)) return false;
     g_dot_hz     = dot_hz;
-    g_oversample = os;
-    g_px_cyc     = (uint)(px + 0.5f);
-    g_cyc        = cyc;
-    g_spp        = (uint32_t)(px / (float)g_cyc * 65536.0f + 0.5f);
+    g_oversample = r.os;
+    g_px_cyc     = r.px_cyc;
+    g_cyc        = r.cyc;
+    g_spp        = r.spp;
     return true;
 }
 
@@ -404,7 +417,8 @@ void capture_dump_fast(uint skip)
 static uint16_t s_edges[MEASURE_EDGES];
 static int16_t  s_cos[256], s_sin[256];
 
-static float alignment(uint n, float P)
+// Also the edges' mean position within P, in sysclk from the first sample.
+static float alignment_at(uint n, float P, float *mean)
 {
     const float k = 256.0f / P;
     int32_t c = 0, s = 0;
@@ -413,8 +427,15 @@ static float alignment(uint n, float P)
         c += s_cos[a];
         s += s_sin[a];
     }
+    if (mean) {
+        float a = atan2f((float)s, (float)c);
+        if (a < 0.0f) a += 6.2831853f;
+        *mean = a / 6.2831853f * P;
+    }
     return sqrtf((float)c * (float)c + (float)s * (float)s) / ((float)n * 16384.0f);
 }
+
+static float alignment(uint n, float P) { return alignment_at(n, P, NULL); }
 
 bool capture_measure_dot(uint skip, uint base, uint bits,
                          uint lo_hz, uint hi_hz, capture_measure_t *m)
@@ -463,9 +484,48 @@ bool capture_measure_dot(uint skip, uint base, uint bits,
     }
 
     m->period    = best_p;
-    m->align     = best_r;
     m->dot_hz    = (uint)(sys / best_p + 0.5f);
     m->h_total   = (float)g_line_cyc / best_p;
+    m->pulse     = g_pulse;
+
+    // Where the edges sit within a pixel, counted from the HSYNC edge: the
+    // fast grab's first sample is f.delay after it, as a normal one is.
+    float mean;
+    m->align   = alignment_at(n, best_p, &mean);
+    m->edge_at = fmodf((float)f.delay + mean, best_p);
+    return true;
+}
+
+// As tools/autotune.py step 4: the window for dot_hz starts at
+// (pulse / px_cyc + bp) * px_cyc + phase, and view.c takes sample
+// floor((k + 0.5) * spp) for pixel k. For each phase, the worst distance from
+// any of those samples to the edges; keep the phase where that's largest.
+bool capture_best_phase(const capture_measure_t *m, uint dot_hz, capture_phase_t *out)
+{
+    rate_t r;
+    if (!rate_for(dot_hz, &r)) return false;
+    const float P     = (float)clock_get_hz(clk_sys) / (float)dot_hz;
+    const uint  start = (m->pulse / r.px_cyc + g_bp) * r.px_cyc;
+    float e = fmodf(m->edge_at - (float)start, P);
+    if (e < 0.0f) e += P;
+
+    out->phase  = 0;
+    out->margin = -1.0f;
+    for (uint phase = 0; phase < r.px_cyc; phase++) {
+        float worst = P;
+        for (uint k = 0; k < g_active_w; k++) {
+            const uint j = (uint)(((uint64_t)(2u * k + 1u) * r.spp) >> 17);
+            float x = (float)phase + (float)j * (float)r.cyc - e;
+            x -= P * floorf(x / P);
+            const float d = x < P - x ? x : P - x;
+            if (d < worst) worst = d;
+        }
+        if (worst > out->margin) { out->margin = worst; out->phase = phase; }
+    }
+    const float ra = m->align > 1e-6f ? m->align : 1e-6f;
+    out->spread = sqrtf(fmaxf(0.0f, -2.0f * logf(ra))) * P / 6.2831853f;
+    out->os     = r.os;
+    out->px_cyc = r.px_cyc;
     return true;
 }
 

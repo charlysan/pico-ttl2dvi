@@ -50,7 +50,19 @@ typedef struct {
     uint  dot_hz;
     float align;        // 0..1: how tightly the edges line up at that period
     float h_total;      // line period / pixel period, in pixels
+    float edge_at;      // where edges sit within a pixel, sysclk after HSYNC, mod period
+    uint32_t pulse;     // the HSYNC pulse it was measured with
 } capture_measure_t;
 bool capture_measure_dot(uint skip, uint base, uint bits,
                          uint lo_hz, uint hi_hz, capture_measure_t *m);
+
+// The phase that keeps every pixel's sample furthest from the measured edges,
+// if the dot clock were dot_hz (at the current bp), as tools/autotune.py
+// computes it. margin: that worst distance, sysclk; spread: the edges' own
+// width, from the alignment. False if the sampler can't run at dot_hz.
+typedef struct {
+    uint  phase, os, px_cyc;
+    float margin, spread;
+} capture_phase_t;
+bool capture_best_phase(const capture_measure_t *m, uint dot_hz, capture_phase_t *out);
 #endif
