@@ -9,6 +9,7 @@
 #include "settings.h"
 #include "detect.h"
 #include "osd.h"
+#include "learn.h"
 #include "buttons.h"
 #include "menu.h"
 
@@ -194,6 +195,10 @@ static const item_t osd[] = {
     { "Hold",   ITEM_TOGGLE, .get = get_hold, .set = set_hold },
 };
 
+static const item_t remote[] = {
+    { "Learn", ITEM_ACTION, .run = learn_start },
+};
+
 static const item_t info[] = {
     { "Version", ITEM_ACTION, .run = show_version },
     { "Status",  ITEM_ACTION, .run = show_status },
@@ -209,6 +214,7 @@ static const item_t top[] = {
     { "Output", ITEM_LIST, .confirm = true, .count = video_mode_count, .label = mode_label,
                 .pick = video_set_mode },
     SUB("OSD",      osd),
+    SUB("Remote",   remote),
     SUB("Info",     info),
 };
 

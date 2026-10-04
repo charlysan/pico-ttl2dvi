@@ -187,10 +187,17 @@ box can be tuned without a computer. Both are optional.
   (observed when switching to EGA 350-line (1 px stripes or checkerboards).
 - The remote must speak **NEC**, which most cheap remotes do.
 
-To use a remote, record its buttons with `tools/irlearn.py --learn ir.txt`,
-turn the map into a UF2 with `tools/irmap2uf2.py ir.txt`, and drop
-`irmap.uf2` on the BOOTSEL drive (or `picotool load -f irmap.uf2`). Firmware
-updates leave the map in place.
+To use a remote, either:
+
+- **on the box:** Menu → Remote → Learn, then follow the on-screen prompts
+  with the push buttons. It asks for the navigation keys, then offers
+  shortcuts from a list (OSD status/live/hide, scanlines, load slot 0-7); or
+- **from a computer:** record its buttons with `tools/irlearn.py --learn
+  ir.txt`, turn the map into a UF2 with `tools/irmap2uf2.py ir.txt`, and drop
+  `irmap.uf2` on the BOOTSEL drive (or `picotool load -f irmap.uf2`). This
+  route can put any console command on a key.
+
+Firmware updates leave the map in place.
 
 ## How it works
 

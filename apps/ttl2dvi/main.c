@@ -16,6 +16,7 @@
 #include "buttons.h"
 #include "menu.h"
 #include "remote.h"
+#include "learn.h"
 
 int main(void) {
     settings_init();
@@ -100,7 +101,9 @@ int main(void) {
         }
         console_poll();
 
-        menu_poll(buttons_poll() | remote_poll());
+        const uint ev = buttons_poll() | remote_poll();
+        if (learn_active()) learn_poll(ev);
+        else                menu_poll(ev);
     }
 
 }

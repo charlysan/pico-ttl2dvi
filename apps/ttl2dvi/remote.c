@@ -1,15 +1,19 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/flash.h"
 #include "board.h"
 #include "console.h"
 #include "ir.h"
+#include "settings.h"
 #include "buttons.h"
+#include "learn.h"
 #include "remote.h"
 
 // The key map: the text tools/irlearn.py writes, in the sector before the
-// settings one, ended by a NUL or erased flash. tools/irmap2uf2.py installs it.
+// settings one, ended by a NUL or erased flash. tools/irmap2uf2.py installs
+// it, or learn.c writes it through remote_save_map().
 #define MAP_OFS  (PICO_FLASH_SIZE_BYTES - 2u * FLASH_SECTOR_SIZE)
 #define MAP_MAX  32
 
@@ -141,17 +145,32 @@ uint remote_poll(void)
             if (s_key && s_key->rep && now - s_press_us >= DELAY_US) ev |= act(s_key);
             continue;
         }
+        // While learning, a key is only a code, whatever the map says.
+        const bool learning = learn_active();
         s_held     = c;
-        s_key      = find(c);
+        s_key      = learning ? NULL : find(c);
         s_held_us  = now;
         s_press_us = now;
         if (s_sniff)
             printf("ir: %08lX  addr %04lX cmd %02lX%s%.*s\n", (unsigned long)c,
                    (unsigned long)(c & 0xffffu), (unsigned long)((c >> 16) & 0xffu),
                    s_key ? "  -> " : "", s_key ? (int)s_key->len : 0, s_key ? s_key->cmd : "");
-        if (s_key) ev |= act(s_key);
+        if (learning) learn_code(c);
+        else if (s_key) ev |= act(s_key);
     }
     return ev;
+}
+
+void remote_save_map(const char *text)
+{
+    // Padded to whole flash pages; the NUL padding also ends the text.
+    const uint n   = (uint)strlen(text) + 1u;
+    const uint len = (n + FLASH_PAGE_SIZE - 1u) / FLASH_PAGE_SIZE * FLASH_PAGE_SIZE;
+    if (len > FLASH_SECTOR_SIZE) return;
+    char *buf = calloc(1, len);
+    if (!buf) return;
+    memcpy(buf, text, n);
+    settings_flash_write(MAP_OFS, buf, len);
 }
 
 static void print_map(void)

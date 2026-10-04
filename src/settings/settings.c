@@ -122,24 +122,29 @@ bool settings_load(uint n)
 
 // A flash write stops DVI for good (libdvi's DMA chain runs dry and nothing
 // restarts it), so core1 is stopped first and the Pico reboots after.
-static void commit(void)
+void settings_flash_write(uint32_t ofs, const void *data, uint len)
 {
-    u.s.magic = MAGIC;
-    u.s.ver   = FORMAT_VER;
     printf("writing flash (reboot)...\n");
     sleep_ms(50);
 
     multicore_reset_core1();
     const uint32_t ints = save_and_disable_interrupts();
-    flash_range_erase(FLASH_OFS, FLASH_SECTOR_SIZE);
-    flash_range_program(FLASH_OFS, u.raw, sizeof u.raw);
+    flash_range_erase(ofs, FLASH_SECTOR_SIZE);
+    flash_range_program(ofs, data, len);
     restore_interrupts(ints);
 
-    if (memcmp((const void *)(XIP_BASE + FLASH_OFS), u.raw, sizeof u.raw))
+    if (memcmp((const void *)(XIP_BASE + ofs), data, len))
         printf("flash verify FAILED\n");
     sleep_ms(50);
     watchdog_reboot(0, 0, 50);
     while (true) tight_loop_contents();
+}
+
+static void commit(void)
+{
+    u.s.magic = MAGIC;
+    u.s.ver   = FORMAT_VER;
+    settings_flash_write(FLASH_OFS, u.raw, sizeof u.raw);
 }
 
 void settings_save(uint n, const char *name)
