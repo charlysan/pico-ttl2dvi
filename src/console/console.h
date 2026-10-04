@@ -9,6 +9,9 @@ typedef void (*console_cmd_fn)(int argc, char **argv);
 // Call from the core-0 main loop; non-blocking poll.
 void console_poll(void);
 
+// Run one command line as if typed (the IR remote's shortcuts).
+void console_exec(const char *line);
+
 void console_register(const char *name, console_cmd_fn fn, const char *help);
 void console_init(void);
 

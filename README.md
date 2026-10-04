@@ -139,6 +139,66 @@ Vcc being 3.3 V.
 Beyond dropping the resistors, this also removes the power-sequencing rule: LVC
 supports partial power-down, so the card may be live while the Pico is off.
 
+### Controls: buttons and IR remote (optional)
+
+Three push buttons and an IR receiver drive a one-line on-screen menu, so the
+box can be tuned without a computer. Both are optional.
+
+| Function | GPIO | Header pin (Pi layout) |
+|---|---|---|
+| IR receiver output | 6 | 31 |
+| Button UP (previous / -1) | 7 | 26 |
+| Button DOWN (next / +1) | 8 | 24 |
+| Button ENTER (short: select, long: back) | 9 | 21 |
+
+```
+   push buttons (each one to GND)              RP2350
+   ──────────────────────────────              ──────
+          ┌──── UP ────┐
+   GND ───┤            ├───────────────────►  GPIO 7
+          └─── o  o ───┘
+          ┌─── DOWN ───┐
+   GND ───┤            ├───────────────────►  GPIO 8
+          └─── o  o ───┘
+          ┌── ENTER ───┐
+   GND ───┤            ├───────────────────►  GPIO 9
+          └─── o  o ───┘
+
+   IR receiver (KY-022 / VS1838B)
+   ──────────────────────────────
+          ┌───────────┐
+          │  KY-022   │
+          │         S ├─────────────────────►  GPIO 6
+          │       VCC ├──────┬──────────────◄  3V3
+          │           │     ═╪═ 100nF 
+          │         - ├──────┴───────────────  GND
+          └───────────┘
+```
+
+- **No resistors.** The firmware enables the internal pull-ups, so a button
+  reads low while pressed. Wire buttons to **GND**, not to 3V3 with
+  pull-downs: RP2350 erratum E9 can latch an input with the internal pull-down
+  at ~2 V.
+- **Power the IR receiver from 3V3**, not 5 V: its output is pulled up to its
+  own supply, so at 3V3 it connects straight to the GPIO.
+- **Put a 100 nF capacitor across the receiver's VCC and GND**, right at the
+  module. Without it, the switching noise from the video inputs reaches the
+  receiver through its supply, and its LED flickers 
+  (observed when switching to EGA 350-line (1 px stripes or checkerboards).
+- The remote must speak **NEC**, which most cheap remotes do.
+
+To use a remote, either:
+
+- **on the box:** Menu → Remote → Learn, then follow the on-screen prompts
+  with the push buttons. It asks for the navigation keys, then offers
+  shortcuts from a list (OSD status/live/hide, scanlines, load slot 0-7); or
+- **from a computer:** record its buttons with `tools/irlearn.py --learn
+  ir.txt`, turn the map into a UF2 with `tools/irmap2uf2.py ir.txt`, and drop
+  `irmap.uf2` on the BOOTSEL drive (or `picotool load -f irmap.uf2`). This
+  route can put any console command on a key.
+
+Firmware updates leave the map in place.
+
 ## How it works
 
 ```

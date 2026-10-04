@@ -45,6 +45,11 @@ void settings_clear(uint n);
 void settings_set_default(int n);               // -1 = none
 void settings_save_source(uint8_t id, bool auto_on);   // applies after power cycles
 
+// Erases the sector at flash offset ofs, writes len bytes (a multiple of
+// FLASH_PAGE_SIZE) and reboots. Shared with the IR key map, which has its own
+// sector. Doesn't return.
+void settings_flash_write(uint32_t ofs, const void *data, uint len);
+
 // Applies slot n now. If its output mode differs, switches mode (reboots) and
 // applies it after the reboot. False if the slot is empty.
 bool settings_load(uint n);

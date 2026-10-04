@@ -12,6 +12,11 @@
 #include "sigcheck.h"
 #include "detect.h"
 #include "settings.h"
+#include "osd.h"
+#include "buttons.h"
+#include "menu.h"
+#include "remote.h"
+#include "learn.h"
 
 int main(void) {
     settings_init();
@@ -32,6 +37,8 @@ int main(void) {
     capture_init();
     view_init();
     settings_apply_boot();
+    buttons_init();
+    remote_init();
 
     stdio_init_all();
     // Do NOT wait for USB
@@ -52,7 +59,10 @@ int main(void) {
     console_register("vscale", cmd_vscale, "vertical scale 1..4");
     console_register("vpos", cmd_vpos, "vertical position, source lines (+ = down)");
     console_register("hpos", cmd_hpos, "horizontal position, source px (+ = right)");
-    console_register("scanlines", cmd_scanlines, "scanlines on|off (needs vscale >= 2)");
+    console_register("scanlines", cmd_scanlines, "scanlines on|off|switch (needs vscale >= 2)");
+    console_register("osd", cmd_osd, "on-screen display: osd on|off|auto|hold|hide|status|live [off]; osd ? for details");
+    console_register("osd_print", cmd_osd_print, "show text on screen for 5 s: osd_print <text>");
+    console_register("ir", cmd_ir, "IR remote: ir on|off (print codes), ir map");
     console_register("capture", cmd_capture, "capture a frame");
     console_register("bp", cmd_bp, "back porch");
     console_register("dotclock", cmd_dotclock, "dot clock in MHz, or default");
@@ -65,10 +75,12 @@ int main(void) {
     while (true) {
         if (!capture_grab()) {
             signal_lost();
+            osd_lost();
             auto_poll(0);
         } else {
             const uint32_t line = capture_line_cycles();
             signal_feed(line, capture_height());
+            osd_frame(line, capture_height());
 
             // A frame from another source or EGA family is not rendered: the
             // last good frame stays on screen.
@@ -88,6 +100,10 @@ int main(void) {
             auto_poll(line);
         }
         console_poll();
+
+        const uint ev = buttons_poll() | remote_poll();
+        if (learn_active()) learn_poll(ev);
+        else                menu_poll(ev);
     }
 
 }

@@ -1,0 +1,51 @@
+; NEC IR receiver. The receiver output is low during a burst.
+; Each bit is timed from one burst start to the next: 1.125 ms is a 0, 2.25 ms
+; a 1. Timing from the burst's END would depend on the burst's width, which
+; the receiver distorts. X counts 2-cycle steps from the burst start; 32 steps
+; = 64 cycles is 1.6875 ms (sm_config_set_clkdiv in ir.c), the split.
+; Pushes each frame as one word, and all ones for a repeat frame.
+
+.program ir_nec
+
+.define LOW_CHECK 8         ; a low shorter than this many cycles (~210 us) is a glitch
+
+idle:
+    wait 1 pin 0
+    wait 0 pin 0
+start:                      ; at a burst start
+    set x, 31
+burst:
+    jmp pin gap
+    jmp x-- burst
+    wait 1 pin 0            ; a burst over 1.69 ms: the 9 ms leader
+    mov isr, null
+    set x, 31               ; then 3.4 ms of space: a shorter one is a repeat (2.25 ms)
+space1:
+    jmp pin space1_high
+    jmp repeat
+space1_high:
+    jmp x-- space1
+    set x, 31
+space2:
+    jmp pin space2_high
+    jmp repeat
+space2_high:
+    jmp x-- space2
+    wait 0 pin 0            ; the first data burst
+    jmp start
+repeat:
+    mov isr, ~null
+    push noblock
+    jmp idle
+gap:
+    jmp pin gap_high
+    nop [LOW_CHECK - 2]
+    jmp pin gap_high        ; high again: it was a glitch
+    in null, 1              ; next burst before 1.69 ms: a 0, autopush after 32
+    set x, 25               ; the next count, less the 6 steps spent checking
+    jmp burst
+gap_high:
+    jmp x-- gap
+    in pins, 1              ; no burst by 1.69 ms: a 1
+    wait 0 pin 0
+    jmp start

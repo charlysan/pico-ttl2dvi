@@ -39,6 +39,17 @@ void video_set_vmap(uint first, uint rep, uint n);
 void video_set_scanlines(bool on);
 bool video_get_scanlines(void);
 
+// One line of text near the bottom of the screen, for ms milliseconds
+// (0 = until hidden). Live, no reboot.
+void video_osd_show(const char *s, uint ms);
+void video_osd_hide(void);
+// Disabled: show() does nothing. Hold: show() ignores ms and the text stays
+// until replaced or hidden. Both RAM only, default enabled and not held.
+void video_osd_enable(bool on);
+bool video_osd_enabled(void);
+void video_osd_set_hold(bool on);
+bool video_osd_hold(void);
+
 // RGBI sample (I | R<<1 | G<<2 | B<<3) -> RGB222 byte, 16 entries.
 // Used by every 4-bit RGBI source (CGA, C128).
 const uint8_t *video_cga_rgb222(void);

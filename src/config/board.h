@@ -19,6 +19,12 @@
 #define PIN_VSYNC 26
 #define PIN_HSYNC 27
 
+// ---- controls (header pins, wired to GND, internal pull-ups) ----
+#define PIN_IR        6
+#define PIN_BTN_UP    7
+#define PIN_BTN_DOWN  8
+#define PIN_BTN_ENTER 9
+
 // ---- per-board DVI output ----
 #if defined(TTL_BOARD_pizero)
     // Waveshare RP2350-PiZero (RP2350B): TMDS {36,34,32} clk 38 -> base 16

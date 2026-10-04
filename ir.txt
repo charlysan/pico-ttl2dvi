@@ -1,0 +1,12 @@
+# ttl2dvi IR key map, written by tools/irlearn.py
+# code     repeat  action
+F807FF00   r       @prev
+E619FF00   r       @prev
+F609FF00   r       @next
+BF40FF00   r       @next
+EA15FF00   -       @enter
+B847FF00   -       @back
+E718FF00   -       @back
+F30CFF00   -       osd status
+A15EFF00   -       osd live
+B946FF00   -       scanlines switch
