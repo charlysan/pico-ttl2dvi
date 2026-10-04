@@ -168,9 +168,10 @@ box can be tuned without a computer. Both are optional.
    ──────────────────────────────
           ┌───────────┐
           │  KY-022   │
-          │         S ├────────────────────►  GPIO 6
-          │       VCC ├───────────────────◄   3V3
-          │         - ├────────────────────   GND
+          │         S ├─────────────────────►  GPIO 6
+          │       VCC ├──────┬──────────────◄  3V3
+          │           │     ═╪═ 100nF 
+          │         - ├──────┴───────────────  GND
           └───────────┘
 ```
 
@@ -180,9 +181,11 @@ box can be tuned without a computer. Both are optional.
   at ~2 V.
 - **Power the IR receiver from 3V3**, not 5 V: its output is pulled up to its
   own supply, so at 3V3 it connects straight to the GPIO.
-- The receiver must speak **NEC**, which most cheap remotes do. Its supply seems 
-  to be noise-sensitive (to be confirmed). A filter cap might be needed between 
-  VCC and GND.
+- **Put a 100 nF capacitor across the receiver's VCC and GND**, right at the
+  module. Without it, the switching noise from the video inputs reaches the
+  receiver through its supply, and its LED flickers 
+  (observed when switching to EGA 350-line (1 px stripes or checkerboards).
+- The remote must speak **NEC**, which most cheap remotes do.
 
 To use a remote, record its buttons with `tools/irlearn.py --learn ir.txt`,
 turn the map into a UF2 with `tools/irmap2uf2.py ir.txt`, and drop
