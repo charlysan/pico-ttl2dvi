@@ -61,6 +61,34 @@ static inline int clampi(int v, int lo, int hi)
     return v < lo ? lo : (v > hi ? hi : v);
 }
 
+// The general resampler, one fb word: pixel k takes sample
+// floor((k + 0.5) * spp), the one at the pixel's centre, black outside the
+// captured width.
+typedef struct {
+    const uint8_t *map;
+    uint32_t spp, mask;
+    uint ppw, bpp, bits, spw, sft, shift, src_w;
+    int h_border;
+} resample_t;
+
+static inline uint32_t __not_in_flash_func(resample_word)(const resample_t *r,
+                                                          const uint32_t *raw, uint w)
+{
+    uint32_t word = 0;
+    for (uint j = 0; j < r->ppw; j++) {
+        const int k = (int)(w * r->ppw + j) - r->h_border;
+        uint v = 0;
+        if (k >= 0 && k < (int)r->src_w) {
+            const uint s = ((2u * (uint)k + 1u) * r->spp) >> 17;
+            const uint32_t d = r->sft ? raw[s >> r->sft] : raw[s / r->spw];
+            const uint off   = r->sft ? (s & (r->spw - 1u)) : (s % r->spw);
+            v = r->map[(d >> (r->shift + off * r->bits)) & r->mask];
+        }
+        word |= v << (r->bpp * j);
+    }
+    return word;
+}
+
 void __not_in_flash_func(view_render)(void)
 {
     const uint src_w = capture_width();
@@ -126,9 +154,41 @@ void __not_in_flash_func(view_render)(void)
     const bool res8 = !one && bits == 4 && bpp == 8 && h_border <= 0
                       && (uint)(-h_border) + fb_w <= src_w;
 
+    // Oversampled MDA into 2bpp (a card off MDA16's 16.000 MHz, e.g. the OTI
+    // at 17.75): res8's running sample position, 16 pixels packed per word.
+    // Unlike res8 the picture needn't fill the row (720 in 736 has an 8 px
+    // border): words wholly inside it take the fast loop, the one or two at
+    // its edges the general one.
+    const bool res2 = !one && mono && bpp == 2;
+    const int  x0   = h_border > 0 ? h_border : 0;
+    const int  x1   = h_border + (int)src_w < (int)fb_w ? h_border + (int)src_w : (int)fb_w;
+
+    const resample_t rs = {
+        .map = map, .spp = spp, .mask = mask, .ppw = ppw, .bpp = bpp, .bits = bits,
+        .spw = spw, .sft = sft, .shift = shift, .src_w = src_w, .h_border = h_border,
+    };
+
     for (int i = 0; i < n; i++) {
         uint32_t  *fb_line = &fb[(uint)i * fb_words];
         const uint line    = (uint)(first_line + i);
+        if (res2) {
+            const uint32_t *raw = (const uint32_t *)capture_raw_line(line);
+            for (uint w = 0; w < fb_words; w++) {
+                const int xs = (int)(w * 16u);
+                if (xs < x0 || xs + 16 > x1) {
+                    fb_line[w] = resample_word(&rs, raw, w);
+                    continue;
+                }
+                uint32_t acc  = spp / 2u + (uint32_t)(xs - h_border) * spp;
+                uint32_t word = 0;
+                for (uint j = 0; j < 32u; j += 2u, acc += spp) {
+                    const uint s = acc >> 16;
+                    word |= (uint32_t)map[(raw[s >> 4] >> ((s & 15u) << 1)) & 3u] << j;
+                }
+                fb_line[w] = word;
+            }
+            continue;
+        }
         if (res8) {
             const uint32_t *raw = (const uint32_t *)capture_raw_line(line);
             uint8_t *out = (uint8_t *)fb_line;
@@ -171,24 +231,10 @@ void __not_in_flash_func(view_render)(void)
             continue;
         }
 
-        // Resample: pixel k takes sample floor((k + 0.5) * spp), the one at
-        // the pixel's centre. At 1x that is sample k.
+        // Resample. At 1x pixel k is sample k.
         const uint32_t *raw = (const uint32_t *)capture_raw_line(line);
-        for (uint w = 0; w < fb_words; w++) {
-            uint32_t word = 0;
-            for (uint j = 0; j < ppw; j++) {
-                const int k = (int)(w * ppw + j) - h_border;
-                uint v = 0;
-                if (k >= 0 && k < (int)src_w) {
-                    const uint s = ((2u * (uint)k + 1u) * spp) >> 17;
-                    const uint32_t d = sft ? raw[s >> sft] : raw[s / spw];
-                    const uint off   = sft ? (s & (spw - 1u)) : (s % spw);
-                    v = map[(d >> (shift + off * bits)) & mask];
-                }
-                word |= v << (bpp * j);
-            }
-            fb_line[w] = word;
-        }
+        for (uint w = 0; w < fb_words; w++)
+            fb_line[w] = resample_word(&rs, raw, w);
     }
 
     video_set_vmap((uint)first_row, (uint)vs, (uint)n);

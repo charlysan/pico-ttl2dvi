@@ -254,10 +254,11 @@ rate. If it finds a different card, it reboots into that source.
 | `src/view` | Scan converter: joins capture and video, owns all display framing |
 | `src/settings` | Persistent settings slots in the last flash sector |
 | `src/console` | USB CDC command console |
-| `apps/ttl2dvi` | The application: startup order + command table (`main.c`), command bodies (`commands.c`), source detection (`detect.c`) |
+| `apps/ttl2dvi` | The application: startup order + command table (`main.c`), command bodies (`commands.c`), source detection (`detect.c`), OSD messages (`osd.c`), buttons and menu (`buttons.c`, `menu.c`), IR remote and learning (`remote.c`, `learn.c`), auto tune (`tune.c`) |
+| `src/ir` | NEC IR decoder on pio2 |
 | `apps/dvi_test` | Standalone DVI test card, links libdvi only |
 | `extern/dvi` | Vendored PicoDVI (`libdvi`) (fork from [mlorenzati](https://github.com/mlorenzati/PicoDVI)) |
-| `tools` | `ttl2dviPanel.py` control panel, `grab.py` frame grabber, `autotune.py` dot clock and phase tuning |
+| `tools` | `ttl2dviPanel.py` control panel, `grab.py` frame grabber, `autotune.py` dot clock and phase tuning, `irlearn.py` / `irmap2uf2.py` IR key maps |
 
 
 Everything that differs between cards - data pins, dot clock, system clock,
@@ -277,12 +278,15 @@ bp / phase           capture framing: sampling window, sub-pixel sampling instan
 dotclock [MHz]       card dot clock, or default
 hpos / vpos          display position
 vscale [1..4]        vertical scale
-scanlines on|off     blank every other line (vscale >= 2)
+scanlines on|off|switch  blank every other line (vscale >= 2)
 mdalevels            MDA grey levels
 slots                saved settings for this source
 save / load / clear  settings slots in flash (8 per source)
 default [n|off]      slot applied at boot
 detect / measure     which source auto would pick / measure the dot clock
+tune [apply]         measure the dot clock and pick the phase (auto tune)
+osd ...              on-screen display; osd live toggles live measurements
+ir on|off / ir map   print IR remote codes / list the loaded key map
 capture / fastcap    dump a frame over USB (tools/grab.py, tools/autotune.py)
 dvi_test             on-screen test pattern
 ```
@@ -304,10 +308,21 @@ switching to CGA...
 ## Tuning a card
 
 If a card's crystal differs from the defaults, the picture shimmers or shows
-evenly spaced vertical bars. `measure` reads the dot clock from pixel edges, and
-`dotclock` sets it. For a finer result, run `fastcap` and feed the output to
-`tools/autotune.py`, which prints the `dotclock` and `phase` to use. Save the
-result in a slot.
+evenly spaced vertical bars. Put text or a test pattern on screen, then:
+
+- **on the box:** Menu → Sampling → Auto tune. It measures the dot clock from
+  pixel edges, picks the phase, shows the result, and offers Apply, Apply and
+  save to a slot, or Cancel;
+- **on the console:** `tune` prints the same result, `tune apply` applies it;
+- **from a computer:** `tools/autotune.py` does the same from a `fastcap`
+  dump, with an edge histogram and the best phases listed.
+
+Auto tune and `tune` search from -25% to +33% of the current dot clock, so a
+card on a different crystal is usually found without changing the source.
+If the result isn't a whole fraction of the system clock it says "may
+shimmer": it works, but a source built for that clock would be cleaner.
+`autotune.py` searches ±5%; for it, set `dotclock` near the card's first.
+`bp` (the left edge) is not tuned. Save the result in a slot.
 
 ## ttl2dviPanel
 

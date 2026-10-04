@@ -17,6 +17,7 @@
 #include "menu.h"
 #include "remote.h"
 #include "learn.h"
+#include "tune.h"
 
 int main(void) {
     settings_init();
@@ -69,6 +70,7 @@ int main(void) {
     console_register("phase", cmd_phase, "sampling phase, sysclk steps within a pixel");
     console_register("detect", cmd_detect, "which source auto detection would pick");
     console_register("measure", cmd_measure, "measure the dot clock from pixel edges: measure [skip lines]");
+    console_register("tune", cmd_tune, "measure dot clock and pick phase: tune [apply]");
     console_register("fastcap", cmd_fastcap, "high-rate capture for tools/autotune.py: fastcap [skip lines]");
     console_register("dvi_test", cmd_test, "run dvi test pattern");
 
@@ -102,7 +104,8 @@ int main(void) {
         console_poll();
 
         const uint ev = buttons_poll() | remote_poll();
-        if (learn_active()) learn_poll(ev);
+        if (learn_active())     learn_poll(ev);
+        else if (tune_active()) tune_poll(ev);
         else                menu_poll(ev);
     }
 
