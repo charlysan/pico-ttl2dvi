@@ -199,6 +199,8 @@ static bool wait_vsync(bool level)
     return true;
 }
 
+#define PULSE_HOLD 4u       // sysclk: the sync SM's +/-2 quantisation, both ways
+
 static uint32_t g_pulse;
 static uint g_max_samples = CAPTURE_MAX_SAMPLES;
 
@@ -208,12 +210,17 @@ static bool fit_sampling(void)
     uint32_t line = sync_hsync(&pulse);
     if (!line) return false;
     g_line_cyc = line;
-    g_pulse    = pulse;
+
+    // The window is placed with the pulse it last used unless the new one
+    // really differs. With the pulse near a whole-pixel boundary (16.257 MHz
+    // Hercules: 2126 = 132 px + 14/16), quantisation alone flips the pixel
+    // count from frame to frame and the whole picture shakes by 1 px.
+    if (pulse > g_pulse + PULSE_HOLD || pulse + PULSE_HOLD < g_pulse) g_pulse = pulse;
 
     uint32_t relock = 3u * g_px_cyc + 8u;
 
     // Whole pixels after the pulse. Remainder pulse%g_px_cyc is phase
-    uint32_t delay_cyc = (pulse / g_px_cyc + g_bp) * g_px_cyc;
+    uint32_t delay_cyc = (g_pulse / g_px_cyc + g_bp) * g_px_cyc;
 
     // The window must fit inside the line, or the sampler runs past the next HSYNC.
     if (delay_cyc + relock + g_cyc * g_spw >= line) return false;
