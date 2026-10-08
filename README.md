@@ -199,6 +199,12 @@ To use a remote, either:
 
 Firmware updates leave the map in place.
 
+
+## PCB Design 
+
+WIP - KiCad through-hole design will be uploaded soon.
+
+
 ## How it works
 
 ```
