@@ -30,6 +30,11 @@ void osd_status(bool echo);
 void osd_menu(const char *text);
 void osd_menu_close(void);
 
+// A line over everything, the menu included (the reset/BOOTSEL countdown).
+// Ending it puts the menu's line back if the menu is still open.
+void osd_override(const char *text);
+void osd_override_end(void);
+
 void cmd_osd(int argc, char **argv);
 void cmd_osd_print(int argc, char **argv);
 

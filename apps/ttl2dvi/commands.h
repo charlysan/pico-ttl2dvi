@@ -32,4 +32,10 @@ void cmd_bp(int argc, char **argv);
 void cmd_phase(int argc, char **argv);
 void cmd_test(int argc, char **argv);
 
+// --- system --- (reboot / USB BOOTSEL; neither returns)
+void app_reboot(void);
+void app_bootsel(void);
+void cmd_reboot(int argc, char **argv);
+void cmd_bootsel(int argc, char **argv);
+
 #endif

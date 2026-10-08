@@ -11,6 +11,29 @@ reconstructed into a framebuffer, and re-emitted as DVI by
 Every source is captured at full frame rate, and the firmware can detect which
 card is connected and switch to it on its own.
 
+
+## Table of contents
+
+- [Supported sources](#supported-sources)
+- [Wiring](#wiring)
+  - [Direct (resistors only)](#direct-resistors-only)
+  - [Buffered (74HCT541 + resistors) - recommended, through-hole](#buffered-74hct541--resistors---recommended-through-hole)
+  - [Buffered (74LVC245A, no resistors) - best](#buffered-74lvc245a-no-resistors---best)
+  - [Controls: buttons and IR remote (optional)](#controls-buttons-and-ir-remote-optional)
+- [PCB Design](#pcb-design)
+- [Quick start guide](#quick-start-guide)
+- [How it works](#how-it-works)
+- [Modules](#modules)
+- [Console](#console)
+- [Tuning a card](#tuning-a-card)
+- [ttl2dviPanel](#ttl2dvipanel)
+- [Build](#build)
+- [Hardware](#hardware)
+- [Screenshots](#screenshots)
+- [Discussion](#discussion)
+- [Acknowledgements](#acknowledgements)
+- [Licence](#licence)
+
 ## Supported sources
 
 | Source | Data lines | Dot clock | Output |
@@ -147,17 +170,20 @@ box can be tuned without a computer. Both are optional.
 | Function | GPIO | Header pin (Pi layout) |
 |---|---|---|
 | IR receiver output | 6 | 31 |
-| Button UP (previous / -1) | 7 | 26 |
-| Button DOWN (next / +1) | 8 | 24 |
+| Button PREV (previous / -1) | 7 | 26 |
+| Button NEXT (next / +1) | 8 | 24 |
 | Button ENTER (short: select, long: back) | 9 | 21 |
+
+Hold **ENTER + PREV** for 2 s to reset, **ENTER + NEXT** for 2 s to reboot into
+USB BOOTSEL (for a UF2). The screen counts down; let go to cancel.
 
 ```
    push buttons (each one to GND)              RP2350
    ──────────────────────────────              ──────
-          ┌──── UP ────┐
+          ┌─── PREV ───┐
    GND ───┤            ├───────────────────►  GPIO 7
           └─── o  o ───┘
-          ┌─── DOWN ───┐
+          ┌─── NEXT ───┐
    GND ───┤            ├───────────────────►  GPIO 8
           └─── o  o ───┘
           ┌── ENTER ───┐
@@ -204,6 +230,9 @@ Firmware updates leave the map in place.
 
 WIP - KiCad through-hole design will be uploaded soon.
 
+## Quick start guide
+
+You can check the Quick Start Guide documentation [here](./docs/quickstart.md)
 
 ## How it works
 
@@ -293,6 +322,7 @@ detect / measure     which source auto would pick / measure the dot clock
 tune [apply]         measure the dot clock and pick the phase (auto tune)
 osd ...              on-screen display; osd live toggles live measurements
 ir on|off / ir map   print IR remote codes / list the loaded key map
+reboot / bootsel     reboot / reboot into USB BOOTSEL (for a UF2)
 capture / fastcap    dump a frame over USB (tools/grab.py, tools/autotune.py)
 dvi_test             on-screen test pattern
 ```

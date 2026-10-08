@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "pico/stdlib.h"
+#include "pico/bootrom.h"
 #include "hardware/clocks.h"
+#include "hardware/watchdog.h"
 #include "commands.h"
 #include "version.h"
 #include "sync.h"
@@ -425,3 +427,21 @@ void cmd_test(int argc, char **argv) {
     (void)argc; (void)argv;
     video_test_pattern_stripes();
 }
+
+// --- system ---
+// The pause lets the console line and an OSD message out before the chip goes.
+void app_reboot(void) {
+    printf("rebooting...\n");
+    sleep_ms(50);
+    watchdog_reboot(0, 0, 10);
+    while (true) tight_loop_contents();
+}
+
+void app_bootsel(void) {
+    printf("rebooting to BOOTSEL...\n");
+    sleep_ms(50);
+    reset_usb_boot(0, 0);
+}
+
+void cmd_reboot(int argc, char **argv)  { (void)argc; (void)argv; app_reboot(); }
+void cmd_bootsel(int argc, char **argv) { (void)argc; (void)argv; app_bootsel(); }

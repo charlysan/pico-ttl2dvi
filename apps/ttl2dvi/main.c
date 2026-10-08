@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/vreg.h"
 #include "hardware/clocks.h"
@@ -18,6 +19,27 @@
 #include "remote.h"
 #include "learn.h"
 #include "tune.h"
+
+// ENTER + PREV / NEXT held: a countdown over whatever the OSD shows, then a
+// reset / BOOTSEL. Letting go of either cancels it.
+static void combos(uint ev)
+{
+    static uint shown;              // seconds left on screen, 0 = none
+    if (ev & EV_RESET)   { osd_override("Rebooting...");            app_reboot(); }
+    if (ev & EV_BOOTSEL) { osd_override("Rebooting to BOOTSEL..."); app_bootsel(); }
+
+    uint left_ms = 0;
+    const uint c = buttons_combo(&left_ms);
+    uint s = c ? (left_ms + 999u) / 1000u : 0u;         // 2, then 1
+    if (c && !s) s = 1;
+    if (s == shown) return;
+    shown = s;
+    if (!s) { osd_override_end(); return; }
+    char text[48];
+    snprintf(text, sizeof text, "%s in %u...  release to cancel",
+             c == BUTTONS_COMBO_RESET ? "Reset" : "BOOTSEL", s);
+    osd_override(text);
+}
 
 int main(void) {
     settings_init();
@@ -71,6 +93,8 @@ int main(void) {
     console_register("detect", cmd_detect, "which source auto detection would pick");
     console_register("measure", cmd_measure, "measure the dot clock from pixel edges: measure [skip lines]");
     console_register("tune", cmd_tune, "measure dot clock and pick phase: tune [apply]");
+    console_register("reboot", cmd_reboot, "reboot");
+    console_register("bootsel", cmd_bootsel, "reboot into USB BOOTSEL, for a UF2");
     console_register("fastcap", cmd_fastcap, "high-rate capture for tools/autotune.py: fastcap [skip lines]");
     console_register("dvi_test", cmd_test, "run dvi test pattern");
 
@@ -103,10 +127,12 @@ int main(void) {
         }
         console_poll();
 
-        const uint ev = buttons_poll() | remote_poll();
+        const uint btn = buttons_poll();
+        combos(btn);
+        const uint ev = (btn & EV_NAV) | remote_poll();
         if (learn_active())     learn_poll(ev);
         else if (tune_active()) tune_poll(ev);
-        else                menu_poll(ev);
+        else                    menu_poll(ev);
     }
 
 }

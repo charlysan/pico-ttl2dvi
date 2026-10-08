@@ -25,23 +25,40 @@ static uint     s_frames, s_nfr, s_ndt;     // frames seen, kept, intervals kept
 static uint32_t s_cyc[LIVE_FRAMES], s_lin[LIVE_FRAMES], s_dt[LIVE_FRAMES];
 
 static bool s_menu;            // the menu owns the line while open
+static char s_menu_text[96];   // its last line, to put back after an override
+static bool s_override;        // the reset/BOOTSEL countdown, over everything
 
 void osd_menu(const char *text)
 {
     s_menu = true;
-    video_osd_show(text, 0);
+    strncpy(s_menu_text, text, sizeof s_menu_text - 1);
+    if (!s_override) video_osd_show(text, 0);
 }
 
 void osd_menu_close(void)
 {
     s_menu = false;
-    video_osd_hide();
+    if (!s_override) video_osd_hide();
+    s_pause_until = 0;
+}
+
+void osd_override(const char *text)
+{
+    s_override = true;
+    video_osd_show(text, 0);
+}
+
+void osd_override_end(void)
+{
+    s_override = false;
+    if (s_menu) video_osd_show(s_menu_text, 0);
+    else        video_osd_hide();
     s_pause_until = 0;
 }
 
 static void show(const char *text, uint ms)
 {
-    if (s_menu) return;
+    if (s_menu || s_override) return;
     video_osd_show(text, ms);
     s_pause_until = time_us_64() + (uint64_t)ms * 1000u;
 }
@@ -165,7 +182,7 @@ static void poll(uint64_t now)
     s_prev = si.state;
 
     if (!s_live || now - s_t0 < LIVE_MS * 1000u) return;
-    if (now >= s_pause_until && !s_menu) live_show(now);
+    if (now >= s_pause_until && !s_menu && !s_override) live_show(now);
     live_reset(now);
 }
 
