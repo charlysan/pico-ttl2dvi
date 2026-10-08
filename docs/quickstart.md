@@ -1,7 +1,6 @@
 # Quickstart
 
-From power-on to a tuned picture, using the on-screen menu. Wiring is in the
-README; details are in `architecture.md`.
+From power-on to a tuned "noise-free" picture, using the on-screen menu.
 
 ## 1. First boot
 
