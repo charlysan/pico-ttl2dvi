@@ -1,15 +1,22 @@
 # pico-ttl2dvi
 [![Build](https://github.com/charlysan/pico-ttl2dvi/actions/workflows/build_and_publish.yml/badge.svg?branch=main)](https://github.com/charlysan/pico-ttl2dvi/actions/workflows/build_and_publish.yml)
 
-Firmware for the RP2350 that captures **digital TTL video** from retro PC
-graphics cards and outputs **DVI/HDMI**, live.
+Firmware and hardware for the RP2350 that captures **digital TTL video** from retro PC graphics cards and outputs **DVI/HDMI**, live.
 
 TTL signals go straight into the RP2350, are sampled by PIO, 
 reconstructed into a framebuffer, and re-emitted as DVI by 
 [PicoDVI](https://github.com/Wren6991/PicoDVI).
 
-Every source is captured at full frame rate, and the firmware can detect which
-card is connected and switch to it on its own.
+<p align="center">
+  <img width="60%" src="./docs/img/hw_tht_rev_x1.jpg">
+</p>
+
+> **Disclaimer.** This is an experimental hobby project. The firmware and
+> hardware designs are shared as they are, with no warranty of any kind. Wiring
+> a graphics card to a microcontroller means connecting 5V signals to a 3.3V
+> chip, and a mistake can damage your graphics card, PC, monitor, RP2350 board
+> or anything else attached. Build and use it at your own risk. The author
+> accepts no responsibility for any damage or loss that results.
 
 
 ## Table of contents
@@ -20,7 +27,7 @@ card is connected and switch to it on its own.
   - [Buffered (74HCT541 + resistors) - recommended, through-hole](#buffered-74hct541--resistors---recommended-through-hole)
   - [Buffered (74LVC245A, no resistors) - best](#buffered-74lvc245a-no-resistors---best)
   - [Controls: buttons and IR remote (optional)](#controls-buttons-and-ir-remote-optional)
-- [PCB Design](#pcb-design)
+- [Adapter board](#pcb-design)
 - [Quick start guide](#quick-start-guide)
 - [How it works](#how-it-works)
 - [Modules](#modules)
@@ -226,9 +233,10 @@ To use a remote, either:
 Firmware updates leave the map in place.
 
 
-## PCB Design 
+## Adapter board 
 
-WIP - KiCad through-hole design will be uploaded soon.
+WIP - KiCad experimental through-hole project will be shared soon.
+
 
 ## Quick start guide
 
