@@ -27,7 +27,7 @@ reconstructed into a framebuffer, and re-emitted as DVI by
   - [Buffered (74HCT541 + resistors) - recommended, through-hole](#buffered-74hct541--resistors---recommended-through-hole)
   - [Buffered (74LVC245A, no resistors) - best](#buffered-74lvc245a-no-resistors---best)
   - [Controls: buttons and IR remote (optional)](#controls-buttons-and-ir-remote-optional)
-- [Adapter board](#pcb-design)
+- [Adapter board](#adapter-board)
 - [Quick start guide](#quick-start-guide)
 - [How it works](#how-it-works)
 - [Modules](#modules)
@@ -233,7 +233,7 @@ To use a remote, either:
 Firmware updates leave the map in place.
 
 
-## Adapter board 
+## Adapter board
 
 WIP - KiCad experimental through-hole project will be shared soon.
 
