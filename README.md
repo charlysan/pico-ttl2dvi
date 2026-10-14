@@ -235,7 +235,8 @@ Firmware updates leave the map in place.
 
 ## Adapter board
 
-An experimental through-hole board design (KiCad) is in [hardware/tht](./hardware/tht/).
+An experimental through-hole board design (KiCad) is in [hardware/tht](./hardware/tht/). See the [hardware documentation](./hardware/README.md) for how to build one.
+Rev A is untested; only the breadboard prototype has been verified.
 
 
 ## Quick start guide
