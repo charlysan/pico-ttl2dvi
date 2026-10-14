@@ -6,7 +6,7 @@
 	(paper "A3")
 	(title_block
 		(title "ttl2dvi throughole baseboard")
-		(rev "THT X1")
+		(rev "THT A")
 	)
 	(lib_symbols
 		(symbol "+5V_1"
@@ -11207,7 +11207,7 @@
 				)
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad"
+		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
 			(at 173.99 247.65 0)
 			(hide yes)
 			(show_name no)
@@ -12516,7 +12516,7 @@
 				)
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad"
+		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
 			(at 173.99 261.62 0)
 			(hide yes)
 			(show_name no)
@@ -14384,7 +14384,7 @@
 				)
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad"
+		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
 			(at 161.29 247.65 0)
 			(hide yes)
 			(show_name no)
@@ -15192,7 +15192,7 @@
 				)
 			)
 		)
-		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad"
+		(property "Footprint" "MountingHole:MountingHole_3.2mm_M3_Pad_Via"
 			(at 161.29 261.62 0)
 			(hide yes)
 			(show_name no)

@@ -21,9 +21,9 @@ fp-info-cache
 _autosave-*
 *.rpt
 .history/
-hardware/tht/gerbers/*
-!hardware/tht/gerbers/*.zip
-hardware/3d
+hardware/tht/**/gerbers/**
+!hardware/tht/**/gerbers/**/
+!hardware/tht/**/gerbers/**/*.zip
 
 # AI Stuff
 CLAUDE.md
