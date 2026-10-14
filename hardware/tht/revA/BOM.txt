@@ -1,0 +1,27 @@
+ttl2dvi THT adapter board - bill of materials (rev A)
+
+Ref        Qty  Value / part                   Package                  Optional  Notes
+---------  ---  -----------------------------  -----------------------  --------  ------------------------------------------
+J1           1  2x20 female header             2.54 mm                  no        Waveshare RP2350-PiZero plugs in face down
+-            1  Waveshare RP2350-PiZero        module                   no
+J2           1  DE9 male, right angle          PCB mount                yes       video in; fit J2 or J3, use one input only
+J3           1  2x5 IDC box header             2.54 mm                  yes       video in via DE9-to-IDC10 cable
+U1           1  74LVC245A or 74HCT541          DIP-20                   no        set JP1/JP2 to match
+-            1  IC socket                      DIP-20                   no
+U2           1  74LVC14A or 74HCT14            DIP-14                   yes       Schmitt on the syncs; same family as U1
+-            1  IC socket                      DIP-14                   yes       with U2
+R1-R8        8  330R 1/4 W                     axial                    no
+C1, C2       2  100nF ceramic                  disc, 5 mm               no        buffer supply decoupling
+JP1-JP4      4  1x3 pin header                 2.54 mm                  no
+-            4  jumper shunt                   2.54 mm                  no        one per JP1-JP4
+SW1-SW3      3  tactile push button            6 mm                     yes       PREV / NEXT / ENTER menu buttons
+U3           1  VS1838B/TSOP38238 IR receiver  3-pin                    yes       IR remote
+R9           1  100R 1/4 W                     axial                    yes       U3 supply; required when U3 is fitted
+C4           1  100nF ceramic                  disc, 5 mm               yes       at U3; required when U3 is fitted
+D1           1  LED 3 mm                       THT                      yes       IR activity, debug only
+R10          1  1k 1/4 W                       axial                    yes       with D1
+J4           1  2x5 pin header                 2.54 mm                  yes       logic analyser
+J5           1  1x3 pin header                 2.54 mm                  yes       UART console
+R11, R12     2  1k 1/4 W                       axial                    yes       with J5; fit before J1 (under the module)
+J6           1  JST XH 2-pin                   2.50 mm                  yes       external 5 V in
+D2           1  1N5819 Schottky                DO-41                    yes       with J6

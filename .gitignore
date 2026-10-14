@@ -13,6 +13,18 @@ build/
 *.swp
 .DS_Store
 
+# KiCad
+*.kicad_prl
+*-backups/
+*.lck
+fp-info-cache
+_autosave-*
+*.rpt
+.history/
+hardware/tht/**/gerbers/**
+!hardware/tht/**/gerbers/**/
+!hardware/tht/**/gerbers/**/*.zip
+
 # AI Stuff
 CLAUDE.md
 .claude

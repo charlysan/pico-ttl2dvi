@@ -1,0 +1,13 @@
+(version 1)
+(rule "Parts under the Pi module"
+    (severity ignore)
+    (condition "A.Reference == 'J1' && (B.Reference == 'R11' || B.Reference == 'R12')")
+    (constraint courtyard_clearance))
+
+(rule "J1 GND pads: one spoke is enough"
+	(condition "A.memberOfFootprint('J1') && A.NetName == 'GND'")
+	(constraint min_resolved_spokes 1))
+
+(rule "J3 GND pads: one spoke is enough"
+	(condition "A.memberOfFootprint('J3') && A.NetName == 'GND'")
+	(constraint min_resolved_spokes 1))
