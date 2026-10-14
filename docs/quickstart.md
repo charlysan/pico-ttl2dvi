@@ -2,7 +2,7 @@
 
 Build the hardware, power it up, and tune the picture with the on-screen menu.
 
-## 1. Hardware
+## 1. Hardware and firmware
 
 Either:
 
@@ -10,6 +10,15 @@ Either:
   for ordering, which chips to use and the jumpers; or
 - **Wire a prototype** on a breadboard. See [Wiring](../README.md#wiring) in
   the main README.
+
+Then flash the firmware:
+
+1. Download the zip from the [latest release](https://github.com/charlysan/pico-ttl2dvi/releases/latest)
+   and unzip it.
+2. Hold the Waveshare's **BOOT** button while plugging in USB. It shows up as a
+   USB drive (`RP2350`).
+3. Copy`ttl2dvi.uf2` file onto it. The board reboots into the firmware.
+
 
 ## 2. First boot
 
