@@ -1,10 +1,19 @@
 # Quickstart
 
-From power-on to a tuned "noise-free" picture, using the on-screen menu.
+Build the hardware, power it up, and tune the picture with the on-screen menu.
 
-## 1. First boot
+## 1. Hardware
 
-Power the Pico first, then the PC. Power the PC down first.
+Either:
+
+- **Build the adapter board.** See [hardware/README.md](../hardware/README.md)
+  for ordering, which chips to use and the jumpers; or
+- **Wire a prototype** on a breadboard. See [Wiring](../README.md#wiring) in
+  the main README.
+
+## 2. First boot
+
+Power the Pico first, then the PC. And power the PC down first (not needed with an LVC buffer).
 
 The board detects the card and shows a status line once the signal is stable:
 
@@ -14,7 +23,7 @@ MDA16    256.0 MHz  H 18140 Hz  V 49.03 Hz
 
 Source, system clock, line rate, frame rate. It hides after 5 s.
 
-## 2. Buttons
+## 3. Buttons
 
 | button | press | hold |
 |---|---|---|
@@ -26,7 +35,7 @@ Source, system clock, line rate, frame rate. It hides after 5 s.
 
 The menu closes after 10 s without input.
 
-## 3. The menu
+## 4. The menu
 
 ENTER opens it. One line, PREV/NEXT to move:
 
@@ -65,7 +74,7 @@ Remote    Learn
 Info      Version · Status
 ```
 
-## 4. Tune a card
+## 5. Tune a card
 
 Shimmer, vertical bars, or the wrong width mean the card's clock differs from
 the default. Put text or a test pattern on screen.
@@ -91,7 +100,7 @@ PREV/NEXT choose Apply, Apply and save, or Cancel.
 If the right or left edge is cut, adjust Sampling > Back porch until the
 picture fits, then run Auto tune again: the phase depends on it.
 
-## 5. Save it
+## 6. Save it
 
 Apply and save, or Profiles > Save:
 
@@ -101,7 +110,7 @@ Tune  Save to slot  <  0  -             >
 
 Saving reboots. Profiles > Default applies a slot at every boot.
 
-## 6. Learn a remote
+## 7. Learn a remote
 
 Needs an NEC remote (most cheap ones) and the push buttons.
 
@@ -136,7 +145,7 @@ Learn  Save remote and reboot?  [No]  Yes
 On a computer, `tools/irlearn.py` does the same and can map any console
 command to a key.
 
-## 7. Reset and BOOTSEL
+## 8. Reset and BOOTSEL
 
 Hold ENTER, then PREV (reset) or NEXT (BOOTSEL), for 2 s:
 
@@ -146,7 +155,7 @@ Reset in 2...  release to cancel
 
 BOOTSEL shows the board as a USB drive. Drop a `.uf2` on it to update.
 
-## 8. Live readings
+## 9. Live readings
 
 OSD > Live:
 
