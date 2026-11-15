@@ -4052,7 +4052,7 @@
 		(uuid "48ab88d7-7084-4d02-b109-3ad55a30bb11")
 	)
 	(junction
-		(at 91.44 149.86)
+		(at 165.1 45.72)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "66d390b3-af4c-464b-864c-adbba2f00e3e")
@@ -4064,7 +4064,7 @@
 		(uuid "704d6d51-bb34-4cbf-83d8-841e208048d8")
 	)
 	(junction
-		(at 91.44 139.7)
+		(at 165.1 35.56)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "81573e05-d6a0-4d70-992f-bd0923cd1ea2")
@@ -4169,6 +4169,16 @@
 	)
 	(wire
 		(pts
+			(xy 80.01 125.73) (xy 82.55 125.73)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "12336c71-a074-46bc-938d-776cd5d4270b")
+	)
+	(wire
+		(pts
 			(xy 55.88 63.5) (xy 55.88 68.58)
 		)
 		(stroke
@@ -4186,6 +4196,16 @@
 			(type default)
 		)
 		(uuid "1e0c4369-8229-40fc-9153-e041f5e40ee8")
+	)
+	(wire
+		(pts
+			(xy 90.17 125.73) (xy 93.98 125.73)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1f21fdd6-47a3-46ae-9089-efb39449c59d")
 	)
 	(wire
 		(pts
@@ -4269,7 +4289,7 @@
 	)
 	(wire
 		(pts
-			(xy 91.44 139.7) (xy 91.44 149.86)
+			(xy 165.1 35.56) (xy 165.1 45.72)
 		)
 		(stroke
 			(width 0)
@@ -4489,7 +4509,7 @@
 	)
 	(wire
 		(pts
-			(xy 91.44 130.81) (xy 91.44 139.7)
+			(xy 165.1 26.67) (xy 165.1 35.56)
 		)
 		(stroke
 			(width 0)
@@ -4679,7 +4699,7 @@
 	)
 	(wire
 		(pts
-			(xy 91.44 149.86) (xy 91.44 156.21)
+			(xy 165.1 45.72) (xy 165.1 52.07)
 		)
 		(stroke
 			(width 0)
@@ -4798,7 +4818,7 @@
 		(uuid "1d646646-93a8-461b-abca-3661c585a024")
 	)
 	(label "GPIO_8"
-		(at 81.28 139.7 180)
+		(at 154.94 35.56 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4908,7 +4928,7 @@
 		(uuid "537f6677-11a4-4a24-87c8-9f1c58129f55")
 	)
 	(label "GPIO_9"
-		(at 81.28 149.86 180)
+		(at 154.94 45.72 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5218,7 +5238,7 @@
 		(uuid "d7c048e3-6068-4a90-93c2-c73983cd9545")
 	)
 	(label "GPIO_7"
-		(at 81.28 130.81 180)
+		(at 154.94 26.67 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -5365,7 +5385,7 @@
 			(uuid "fd2c46a1-7aae-42a9-93da-4ab8c0ebf781")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR01")
 					(unit 1)
@@ -5441,7 +5461,7 @@
 			(uuid "fdfe2621-3322-4e6b-8d8a-a69772548e87")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR04")
 					(unit 1)
@@ -5517,7 +5537,7 @@
 			(uuid "c4a8cca2-2b39-45ae-a676-abbcbbb9291c")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR02")
 					(unit 1)
@@ -5593,7 +5613,7 @@
 			(uuid "6d128834-dfd6-4792-956f-f932023802bf")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR03")
 					(unit 1)
@@ -5787,7 +5807,7 @@
 			(uuid "782d2c1f-9599-409d-a3cc-c1b6fda247d8")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J1")
 					(unit 1)
@@ -5796,8 +5816,84 @@
 		)
 	)
 	(symbol
+		(lib_id "power:+3.3V")
+		(at 93.98 125.73 0)
+		(mirror y)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0672aa2a-584d-4948-a9c7-2fba089be581")
+		(property "Reference" "#PWR012"
+			(at 93.98 129.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+3V3"
+			(at 93.6117 121.4056 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 93.98 125.73 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 93.98 125.73 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 93.98 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "0200e4d3-690a-417a-93f4-e8f560b719a9")
+		)
+		(instances
+			(project "PicoTTL2DVI-Interface"
+				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
+					(reference "#PWR012")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Switch:SW_SPST")
-		(at 86.36 139.7 0)
+		(at 160.02 35.56 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -5808,7 +5904,7 @@
 		(fields_autoplaced yes)
 		(uuid "0e557846-1730-4868-bf9f-ec2b0f9c1ac0")
 		(property "Reference" "SW2"
-			(at 86.36 133.35 0)
+			(at 160.02 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5818,7 +5914,7 @@
 			)
 		)
 		(property "Value" "SW_SPST"
-			(at 86.36 135.89 0)
+			(at 160.02 31.75 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5828,7 +5924,7 @@
 			)
 		)
 		(property "Footprint" "Button_Switch_THT:SW_PUSH_6mm"
-			(at 86.36 139.7 0)
+			(at 160.02 35.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5839,7 +5935,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 86.36 139.7 0)
+			(at 160.02 35.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5850,7 +5946,7 @@
 			)
 		)
 		(property "Description" "Single Pole Single Throw (SPST) switch"
-			(at 86.36 139.7 0)
+			(at 160.02 35.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5867,7 +5963,7 @@
 			(uuid "2b22d58f-e680-4d44-b2cf-4ca11c9414ad")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "SW2")
 					(unit 1)
@@ -5942,7 +6038,7 @@
 			(uuid "530e8030-35b6-4120-8335-3ccc203841fc")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR016")
 					(unit 1)
@@ -6021,7 +6117,7 @@
 			(uuid "e1ca959c-645c-4eb9-8122-4e0e85d7763b")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR06")
 					(unit 1)
@@ -6060,7 +6156,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x05_P2.54mm_Horizontal"
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x05_P2.54mm_Vertical"
 			(at 127 113.03 0)
 			(hide yes)
 			(show_name no)
@@ -6124,7 +6220,7 @@
 			(uuid "3db023e7-7dbc-40eb-972c-69162e91ba04")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J4")
 					(unit 1)
@@ -6134,7 +6230,7 @@
 	)
 	(symbol
 		(lib_id "Switch:SW_SPST")
-		(at 86.36 149.86 0)
+		(at 160.02 45.72 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -6145,7 +6241,7 @@
 		(fields_autoplaced yes)
 		(uuid "416240d6-84e4-458f-af4a-25bc575b9b0f")
 		(property "Reference" "SW3"
-			(at 86.36 143.51 0)
+			(at 160.02 39.37 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6155,7 +6251,7 @@
 			)
 		)
 		(property "Value" "SW_SPST"
-			(at 86.36 146.05 0)
+			(at 160.02 41.91 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6165,7 +6261,7 @@
 			)
 		)
 		(property "Footprint" "Button_Switch_THT:SW_PUSH_6mm"
-			(at 86.36 149.86 0)
+			(at 160.02 45.72 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6176,7 +6272,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 86.36 149.86 0)
+			(at 160.02 45.72 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6187,7 +6283,7 @@
 			)
 		)
 		(property "Description" "Single Pole Single Throw (SPST) switch"
-			(at 86.36 149.86 0)
+			(at 160.02 45.72 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6204,7 +6300,7 @@
 			(uuid "670b44e2-209c-4e71-8b39-f41fde6884de")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "SW3")
 					(unit 1)
@@ -6283,9 +6379,85 @@
 			(uuid "b0b9fbd8-b88c-4f96-a4b3-f7922ff8cf05")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "C1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 80.01 125.73 0)
+		(mirror y)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "4675444b-5c58-40c7-87e1-f78f48991168")
+		(property "Reference" "#PWR013"
+			(at 80.01 132.08 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 79.8957 130.0544 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 80.01 125.73 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 80.01 125.73 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 80.01 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "0eeeb6dd-0b71-4701-9433-bd824ef24d07")
+		)
+		(instances
+			(project "PicoTTL2DVI-Interface"
+				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
+					(reference "#PWR013")
 					(unit 1)
 				)
 			)
@@ -6361,7 +6533,7 @@
 			(uuid "913fcd2e-3a6c-41d0-95fe-d47883c9e929")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR05")
 					(unit 1)
@@ -6371,7 +6543,7 @@
 	)
 	(symbol
 		(lib_id "Switch:SW_SPST")
-		(at 86.36 130.81 0)
+		(at 160.02 26.67 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -6382,7 +6554,7 @@
 		(fields_autoplaced yes)
 		(uuid "75e1fefc-ea47-4859-9e61-f6ab418674be")
 		(property "Reference" "SW1"
-			(at 86.36 124.46 0)
+			(at 160.02 20.32 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6392,7 +6564,7 @@
 			)
 		)
 		(property "Value" "SW_SPST"
-			(at 86.36 127 0)
+			(at 160.02 22.86 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6402,7 +6574,7 @@
 			)
 		)
 		(property "Footprint" "Button_Switch_THT:SW_PUSH_6mm"
-			(at 86.36 130.81 0)
+			(at 160.02 26.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6413,7 +6585,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 86.36 130.81 0)
+			(at 160.02 26.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6424,7 +6596,7 @@
 			)
 		)
 		(property "Description" "Single Pole Single Throw (SPST) switch"
-			(at 86.36 130.81 0)
+			(at 160.02 26.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6441,7 +6613,7 @@
 			(uuid "bd48e02f-7a5c-4334-afdd-3d2f9ea4e032")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "SW1")
 					(unit 1)
@@ -6517,7 +6689,7 @@
 			(uuid "da46a7b0-ee57-4c26-a92c-9ab3ebdb12ef")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR09")
 					(unit 1)
@@ -6593,7 +6765,7 @@
 			(uuid "ce219b4d-ef9a-458e-b37c-52228f5d1845")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR010")
 					(unit 1)
@@ -6697,7 +6869,7 @@
 			(uuid "b0d4f3a8-f126-4af2-8cef-bce25f81144b")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J2")
 					(unit 1)
@@ -6775,7 +6947,7 @@
 			(uuid "3f7f0222-9704-4113-839e-19815791279f")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR07")
 					(unit 1)
@@ -6853,7 +7025,7 @@
 			(uuid "bc1a6823-5da4-4a4e-a95e-f739fd90f7a8")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR011")
 					(unit 1)
@@ -6989,7 +7161,7 @@
 			(uuid "000cdb30-3323-491c-8b86-e52dbeb0fee3")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "U1")
 					(unit 1)
@@ -6999,7 +7171,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 91.44 156.21 0)
+		(at 165.1 52.07 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -7010,7 +7182,7 @@
 		(fields_autoplaced yes)
 		(uuid "cb750c16-1e5d-429e-b535-b1b10061235e")
 		(property "Reference" "#PWR08"
-			(at 91.44 162.56 0)
+			(at 165.1 58.42 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7021,7 +7193,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 91.44 161.29 0)
+			(at 165.1 57.15 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7031,7 +7203,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 91.44 156.21 0)
+			(at 165.1 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7042,7 +7214,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 91.44 156.21 0)
+			(at 165.1 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7053,7 +7225,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 91.44 156.21 0)
+			(at 165.1 52.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7067,7 +7239,7 @@
 			(uuid "2e8624a2-69f5-4ff2-8a61-047356b1c055")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR08")
 					(unit 1)
@@ -7145,7 +7317,7 @@
 			(uuid "348fccbd-74af-4b43-b580-88af936d0b5f")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR018")
 					(unit 1)
@@ -7249,7 +7421,7 @@
 			(uuid "ab76db0e-118f-44dd-8d70-98ee10b01d67")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J3")
 					(unit 1)
@@ -7334,9 +7506,88 @@
 			(uuid "d856248d-b326-4041-865a-c08edd7fa3a0")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 86.36 125.73 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "e5c51c1c-3137-4302-8b4d-0a6ff72bc8f8")
+		(property "Reference" "C2"
+			(at 86.36 119.634 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "100nf"
+			(at 86.614 121.666 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+			(at 90.17 124.7648 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 86.36 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 86.36 125.73 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "b9aa1dc3-ae35-4e7e-bb17-d6c063e37d6e")
+		)
+		(pin "2"
+			(uuid "25f8a7af-77db-418b-9edc-1caecbf4d38f")
+		)
+		(instances
+			(project "PicoTTL2DVI-Interface"
+				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
+					(reference "C2")
 					(unit 1)
 				)
 			)
@@ -7409,7 +7660,7 @@
 			(uuid "5a9efc7e-62c9-4e33-a0d7-15fdce5e0f4f")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR014")
 					(unit 1)
@@ -7484,7 +7735,7 @@
 			(uuid "4517faac-3073-45fc-935d-64ac8d126764")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR015")
 					(unit 1)
@@ -7562,7 +7813,7 @@
 			(uuid "1442ff62-3c51-430a-9e4c-c337f707ee36")
 		)
 		(instances
-			(project "PicoTTL2DVI-NonBuffered"
+			(project "PicoTTL2DVI-Interface"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR017")
 					(unit 1)

@@ -77,20 +77,7 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [
-        [
-          "lib_footprint_mismatch|132470000|73480000|00000000-0000-0000-0000-00005a793e9f|00000000-0000-0000-0000-000000000000",
-          ""
-        ],
-        [
-          "lib_footprint_mismatch|141520000|84520000|8119da03-2caa-42de-bb3e-fa8d3dece3e7|00000000-0000-0000-0000-000000000000",
-          ""
-        ],
-        [
-          "starved_thermal|143930000|72230000|61779da3-44c9-48d7-9aab-0c09a1f5ac0b|17da6896-ca46-4d18-8326-9691a9951d62|B.Cu",
-          ""
-        ]
-      ],
+      "drc_exclusions": [],
       "meta": {
         "version": 2
       },
@@ -526,7 +513,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "PicoTTL2DVI-NonBuffered.kicad_pro",
+    "filename": "PicoTTL2DVI-Interface.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -712,8 +699,8 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "PicoTTL2DVI-NonBuffered.kicad_sch",
-        "name": "PicoTTL2DVI-NonBuffered",
+        "filename": "PicoTTL2DVI-Interface.kicad_sch",
+        "name": "PicoTTL2DVI-Interface",
         "uuid": "e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
       }
     ],
@@ -723,7 +710,7 @@
   "sheets": [
     [
       "e63e39d7-6ac0-4ffd-8aa3-1841a4541b55",
-      "PicoTTL2DVI-NonBuffered"
+      "PicoTTL2DVI-Interface"
     ]
   ],
   "text_variables": {},

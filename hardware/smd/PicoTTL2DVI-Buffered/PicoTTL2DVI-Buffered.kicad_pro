@@ -79,27 +79,7 @@
       ],
       "drc_exclusions": [
         [
-          "lib_footprint_mismatch|118630000|83810000|8119da03-2caa-42de-bb3e-fa8d3dece3e7|00000000-0000-0000-0000-000000000000",
-          ""
-        ],
-        [
           "lib_footprint_mismatch|132470000|73480000|00000000-0000-0000-0000-00005a793e9f|00000000-0000-0000-0000-000000000000",
-          ""
-        ],
-        [
-          "starved_thermal|124290000|88890000|61779da3-44c9-48d7-9aab-0c09a1f5ac0b|88de79b1-7db1-4f97-b7cc-4046068617ef|B.Cu",
-          ""
-        ],
-        [
-          "starved_thermal|124290000|88890000|61779da3-44c9-48d7-9aab-0c09a1f5ac0b|88de79b1-7db1-4f97-b7cc-4046068617ef|F.Cu",
-          ""
-        ],
-        [
-          "starved_thermal|132525000|81775000|61779da3-44c9-48d7-9aab-0c09a1f5ac0b|f8b9b925-1145-4325-ab18-d19ae1b079ee|B.Cu",
-          ""
-        ],
-        [
-          "starved_thermal|138250000|86975000|61779da3-44c9-48d7-9aab-0c09a1f5ac0b|db8148de-f122-4f95-91dc-760358a3ee11|B.Cu",
           ""
         ],
         [
@@ -108,10 +88,6 @@
         ],
         [
           "starved_thermal|138850000|74770000|61779da3-44c9-48d7-9aab-0c09a1f5ac0b|05980f41-0849-4ef5-bf3e-40862aecf990|F.Cu",
-          ""
-        ],
-        [
-          "starved_thermal|149010000|72230000|61779da3-44c9-48d7-9aab-0c09a1f5ac0b|a2e424a2-951b-4c79-99e4-498981e70567|B.Cu",
           ""
         ]
       ],
@@ -550,7 +526,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "PicoTTL2DVIBuffered.kicad_pro",
+    "filename": "PicoTTL2DVI-Buffered.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -736,18 +712,18 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "PicoTTL2DVIBuffered.kicad_sch",
-        "name": "PicoTTL2DVIBuffered",
+        "filename": "PicoTTL2DVI-Buffered.kicad_sch",
+        "name": "PicoTTL2DVI-Buffered",
         "uuid": "e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
       }
     ],
-    "used_designators": "#PWR5-23,C1-2,J2-5,SW1-3,U2-3",
+    "used_designators": "#PWR5-23,C1-3,J2-5,SW1-3,U2-3",
     "variants": []
   },
   "sheets": [
     [
       "e63e39d7-6ac0-4ffd-8aa3-1841a4541b55",
-      "PicoTTL2DVIBuffered"
+      "PicoTTL2DVI-Buffered"
     ]
   ],
   "text_variables": {},

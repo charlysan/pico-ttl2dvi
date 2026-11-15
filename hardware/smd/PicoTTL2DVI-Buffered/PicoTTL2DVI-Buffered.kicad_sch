@@ -4103,6 +4103,12 @@
 		(uuid "b3aa8b1f-26b2-4b60-bcbb-477c259b2a5d")
 	)
 	(junction
+		(at 62.23 107.95)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "b659042a-4513-4ed4-822e-2e4be8b838bb")
+	)
+	(junction
 		(at 73.66 76.2)
 		(diameter 1.016)
 		(color 0 0 0 0)
@@ -4413,6 +4419,16 @@
 			(type default)
 		)
 		(uuid "6752816f-9628-4a1f-88cf-4c12f2904f98")
+	)
+	(wire
+		(pts
+			(xy 52.07 107.95) (xy 54.61 107.95)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6b19de7e-2259-43e9-ae7d-e496f8a74b32")
 	)
 	(wire
 		(pts
@@ -5572,7 +5588,7 @@
 			(uuid "fd2c46a1-7aae-42a9-93da-4ab8c0ebf781")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR01")
 					(unit 1)
@@ -5648,7 +5664,7 @@
 			(uuid "fdfe2621-3322-4e6b-8d8a-a69772548e87")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR04")
 					(unit 1)
@@ -5724,7 +5740,7 @@
 			(uuid "c4a8cca2-2b39-45ae-a676-abbcbbb9291c")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR02")
 					(unit 1)
@@ -5800,7 +5816,7 @@
 			(uuid "6d128834-dfd6-4792-956f-f932023802bf")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR03")
 					(unit 1)
@@ -5994,7 +6010,7 @@
 			(uuid "782d2c1f-9599-409d-a3cc-c1b6fda247d8")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J1")
 					(unit 1)
@@ -6074,7 +6090,7 @@
 			(uuid "2b22d58f-e680-4d44-b2cf-4ca11c9414ad")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "SW2")
 					(unit 1)
@@ -6149,7 +6165,7 @@
 			(uuid "530e8030-35b6-4120-8335-3ccc203841fc")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR016")
 					(unit 1)
@@ -6228,9 +6244,85 @@
 			(uuid "e1ca959c-645c-4eb9-8122-4e0e85d7763b")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR06")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 52.07 107.95 0)
+		(mirror y)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "2d3693f8-ade2-436a-927c-996c7b152fc3")
+		(property "Reference" "#PWR021"
+			(at 52.07 114.3 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 51.9557 112.2744 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 52.07 107.95 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 52.07 107.95 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 52.07 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "bf3cfa81-08f6-4e5e-b063-e1f3200d25d0")
+		)
+		(instances
+			(project "PicoTTL2DVI-Buffered"
+				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
+					(reference "#PWR021")
 					(unit 1)
 				)
 			)
@@ -6267,7 +6359,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x05_P2.54mm_Horizontal"
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x05_P2.54mm_Vertical"
 			(at 139.7 69.85 0)
 			(hide yes)
 			(show_name no)
@@ -6331,7 +6423,7 @@
 			(uuid "3db023e7-7dbc-40eb-972c-69162e91ba04")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J4")
 					(unit 1)
@@ -6411,7 +6503,7 @@
 			(uuid "670b44e2-209c-4e71-8b39-f41fde6884de")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "SW3")
 					(unit 1)
@@ -6486,7 +6578,7 @@
 			(uuid "ebe527a7-759e-4b8b-9f41-2fe5291b77aa")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR020")
 					(unit 1)
@@ -6565,7 +6657,7 @@
 			(uuid "b0b9fbd8-b88c-4f96-a4b3-f7922ff8cf05")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "C1")
 					(unit 1)
@@ -6643,7 +6735,7 @@
 			(uuid "913fcd2e-3a6c-41d0-95fe-d47883c9e929")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR05")
 					(unit 1)
@@ -6719,7 +6811,7 @@
 			(uuid "694c422d-133e-4635-9c8d-c693773727a5")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR012")
 					(unit 1)
@@ -6799,7 +6891,7 @@
 			(uuid "bd48e02f-7a5c-4334-afdd-3d2f9ea4e032")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "SW1")
 					(unit 1)
@@ -6875,7 +6967,7 @@
 			(uuid "da46a7b0-ee57-4c26-a92c-9ab3ebdb12ef")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR09")
 					(unit 1)
@@ -6953,7 +7045,7 @@
 			(uuid "e15149b3-8e18-4ab8-8153-4f22907115f4")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR011")
 					(unit 1)
@@ -7029,7 +7121,7 @@
 			(uuid "ce219b4d-ef9a-458e-b37c-52228f5d1845")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR010")
 					(unit 1)
@@ -7107,9 +7199,88 @@
 			(uuid "d31c0527-5360-45fd-9d02-dc660f54d661")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR023")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 58.42 107.95 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "975c0d5e-bf05-4ed7-86eb-1493caf7d2f2")
+		(property "Reference" "C3"
+			(at 58.166 114.046 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "100nf"
+			(at 58.42 111.252 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+			(at 62.23 106.9848 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 58.42 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 58.42 107.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "239de56f-ec06-4a63-a41e-b309fb091afe")
+		)
+		(pin "2"
+			(uuid "bafb5ba5-0405-4947-8205-8492c72f447b")
+		)
+		(instances
+			(project "PicoTTL2DVI-Buffered"
+				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
+					(reference "C3")
 					(unit 1)
 				)
 			)
@@ -7211,7 +7382,7 @@
 			(uuid "b0d4f3a8-f126-4af2-8cef-bce25f81144b")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J2")
 					(unit 1)
@@ -7289,7 +7460,7 @@
 			(uuid "d4e2e5dd-387b-46c6-b4af-341849a6f5b6")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR022")
 					(unit 1)
@@ -7425,7 +7596,7 @@
 			(uuid "b8843c63-2529-4ca0-8147-c126cfe7b42e")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "U2")
 					(unit 1)
@@ -7503,7 +7674,7 @@
 			(uuid "3f7f0222-9704-4113-839e-19815791279f")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR07")
 					(unit 1)
@@ -7579,7 +7750,7 @@
 			(uuid "a3970b3d-8389-44ea-b369-04bf3b250ff9")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR013")
 					(unit 1)
@@ -7715,7 +7886,7 @@
 			(uuid "000cdb30-3323-491c-8b86-e52dbeb0fee3")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "U1")
 					(unit 1)
@@ -7793,7 +7964,7 @@
 			(uuid "2e8624a2-69f5-4ff2-8a61-047356b1c055")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR08")
 					(unit 1)
@@ -7871,7 +8042,7 @@
 			(uuid "348fccbd-74af-4b43-b580-88af936d0b5f")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR018")
 					(unit 1)
@@ -7975,7 +8146,7 @@
 			(uuid "ab76db0e-118f-44dd-8d70-98ee10b01d67")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J3")
 					(unit 1)
@@ -8060,7 +8231,7 @@
 			(uuid "d856248d-b326-4041-865a-c08edd7fa3a0")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "J5")
 					(unit 1)
@@ -8139,7 +8310,7 @@
 			(uuid "020df0ef-2db3-4ba9-aa84-2ea44f481cef")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "C2")
 					(unit 1)
@@ -8214,7 +8385,7 @@
 			(uuid "5a9efc7e-62c9-4e33-a0d7-15fdce5e0f4f")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR014")
 					(unit 1)
@@ -8289,7 +8460,7 @@
 			(uuid "4517faac-3073-45fc-935d-64ac8d126764")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR015")
 					(unit 1)
@@ -8367,7 +8538,7 @@
 			(uuid "1442ff62-3c51-430a-9e4c-c337f707ee36")
 		)
 		(instances
-			(project "PicoTTL2DVIBuffered"
+			(project "PicoTTL2DVI-Buffered"
 				(path "/e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
 					(reference "#PWR017")
 					(unit 1)
